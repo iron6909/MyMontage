@@ -1,0 +1,136 @@
+==> Reusing existing virtual environment: /home/banko/worktrees/MOZ-7/.venv (Python 3.11.15)
+==> Installing requirements.txt (CPU only; requirements-gpu.txt is not used)
+WARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)'))': /simple/pip/
+WARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)'))': /simple/pip/
+Looking in indexes: https://pypi.tuna.tsinghua.edu.cn/simple
+WARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)'))': /simple/pyyaml/
+WARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)'))': /simple/pyyaml/
+Could not fetch URL https://pypi.tuna.tsinghua.edu.cn/simple/pyyaml/: There was a problem confirming the ssl certificate: HTTPSConnectionPool(host='pypi.tuna.tsinghua.edu.cn', port=443): Max retries exceeded with url: /simple/pyyaml/ (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)'))) - skipping
+ERROR: Could not find a version that satisfies the requirement pyyaml>=6.0 (from versions: none)
+ERROR: No matching distribution found for pyyaml>=6.0
+==> pip failed against the configured index; retrying with https://pypi.org/simple
+Collecting pyyaml>=6.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 2))
+  Using cached pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Collecting pydantic>=2.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 3))
+  Downloading pydantic-2.14.3-py3-none-any.whl.metadata (141 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 141.5/141.5 kB 188.8 kB/s eta 0:00:00
+Collecting jsonschema>=4.20 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 4))
+  Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+Collecting python-dotenv>=1.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 5))
+  Downloading python_dotenv-1.2.4-py3-none-any.whl.metadata (29 kB)
+Collecting Pillow>=10.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 6))
+  Downloading pillow-13.0.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+Collecting numpy>=1.24 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 7))
+  Downloading numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Collecting requests>=2.31 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 8))
+  Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Collecting certifi>=2026.10.19 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 9))
+  Downloading certifi-2026.10.23-py3-none-any.whl.metadata (2.5 kB)
+Collecting google-auth>=2.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 10))
+  Downloading google_auth-2.62.2-py3-none-any.whl.metadata (6.0 kB)
+Collecting google-genai>=1.0.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading google_genai-3.4.0-py3-none-any.whl.metadata (61 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.4/61.4 kB 159.8 kB/s eta 0:00:00
+Collecting openai>=2.44.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 12))
+  Downloading openai-3.52.0-py3-none-any.whl.metadata (45 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.6/45.6 kB 902.4 kB/s eta 0:00:00
+Collecting fastapi>=0.110 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 15))
+  Downloading fastapi-0.163.1-py3-none-any.whl.metadata (27 kB)
+Collecting uvicorn>=0.29 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 16))
+  Downloading uvicorn-0.54.0-py3-none-any.whl.metadata (6.6 kB)
+Collecting watchfiles>=0.21 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 17))
+  Downloading watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.9 kB)
+Collecting websockets>=14.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 19))
+  Downloading websockets-17.4-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (6.3 kB)
+Collecting pythainlp>=5.0 (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 20))
+  Downloading pythainlp-5.4.0-py3-none-any.whl.metadata (24 kB)
+Collecting annotated-types>=0.6.0 (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3))
+  Downloading annotated_types-0.8.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.50.4 (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3))
+  Downloading pydantic_core-2.50.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (6.6 kB)
+Collecting typing-extensions>=4.16.0 (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3))
+  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting typing-inspection>=0.4.4 (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3))
+  Downloading typing_inspection-0.4.5-py3-none-any.whl.metadata (2.6 kB)
+Collecting attrs>=22.2.0 (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4))
+  Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+Collecting jsonschema-specifications>=2023.03.6 (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4))
+  Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting referencing>=0.28.4 (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4))
+  Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting rpds-py>=0.25.0 (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4))
+  Downloading rpds_py-2026.9.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+Collecting charset_normalizer<4,>=2 (from requests>=2.31->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 8))
+  Downloading charset_normalizer-3.5.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (46 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.4/46.4 kB 463.7 kB/s eta 0:00:00
+Collecting idna<4,>=2.5 (from requests>=2.31->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 8))
+  Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+Collecting urllib3<3,>=1.26 (from requests>=2.31->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 8))
+  Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting pyasn1-modules>=0.2.1 (from google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10))
+  Downloading pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+Collecting cryptography>=38.0.3 (from google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10))
+  Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (4.4 kB)
+Collecting anyio<5.0.0,>=4.8.0 (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading anyio-4.16.0-py3-none-any.whl.metadata (4.7 kB)
+Collecting httpx2<3.0.0,>=2.0.0 (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading httpx2-2.16.2-py3-none-any.whl.metadata (10.0 kB)
+Collecting tenacity<9.2.0,>=8.2.3 (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading tenacity-9.1.4-py3-none-any.whl.metadata (1.2 kB)
+Collecting distro<2,>=1.7.0 (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+Collecting sniffio (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting jiter<1,>=0.16.0 (from openai>=2.44.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 12))
+  Downloading jiter-0.19.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (5.2 kB)
+Collecting starlette>=0.46.0 (from fastapi>=0.110->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 15))
+  Downloading starlette-1.10.0-py3-none-any.whl.metadata (6.6 kB)
+Collecting annotated-doc>=0.0.2 (from fastapi>=0.110->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 15))
+  Downloading annotated_doc-0.0.6-py3-none-any.whl.metadata (6.5 kB)
+Collecting opentelemetry-api>=1.44.0 (from fastapi>=0.110->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 15))
+  Downloading opentelemetry_api-1.45.2-py3-none-any.whl.metadata (1.4 kB)
+Collecting click>=7.0 (from uvicorn>=0.29->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 16))
+  Downloading click-8.5.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting h11>=0.8 (from uvicorn>=0.29->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 16))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting cffi>=2.0.0 (from cryptography>=38.0.3->google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10))
+  Downloading cffi-2.1.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.5 kB)
+Collecting httpcore2==2.16.2 (from httpx2<3.0.0,>=2.0.0->google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading httpcore2-2.16.2-py3-none-any.whl.metadata (28 kB)
+Collecting truststore>=0.10 (from httpx2<3.0.0,>=2.0.0->google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11))
+  Downloading truststore-0.10.5-py3-none-any.whl.metadata (4.5 kB)
+Collecting pyasn1<0.7.0,>=0.6.1 (from pyasn1-modules>=0.2.1->google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10))
+  Downloading pyasn1-0.6.5-py3-none-any.whl.metadata (8.4 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=38.0.3->google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10))
+  Downloading pycparser-3.12-py3-none-any.whl.metadata (9.7 kB)
+Using cached pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
+Downloading pydantic-2.14.3-py3-none-any.whl (494 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 494.1/494.1 kB 39.7 kB/s eta 0:00:00
+Downloading pydantic_core-2.50.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (2.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.3/2.3 MB 114.2 kB/s eta 0:00:00
+Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 90.6/90.6 kB 182.7 kB/s eta 0:00:00
+Downloading python_dotenv-1.2.4-py3-none-any.whl (23 kB)
+Downloading pillow-13.0.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.1/7.1 MB 300.9 kB/s eta 0:00:00
+Downloading numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.9/16.9 MB 1.2 MB/s eta 0:00:00
+Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 73.1/73.1 kB 852.7 kB/s eta 0:00:00
+Downloading certifi-2026.10.23-py3-none-any.whl (135 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 135.1/135.1 kB 388.7 kB/s eta 0:00:00
+Downloading google_auth-2.62.2-py3-none-any.whl (270 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 270.1/270.1 kB 1.3 MB/s eta 0:00:00
+Downloading google_genai-3.4.0-py3-none-any.whl (1.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 1.6 MB/s eta 0:00:00
+Downloading openai-3.52.0-py3-none-any.whl (2.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.4/2.4 MB 1.6 MB/s eta 0:00:00
+Downloading fastapi-0.163.1-py3-none-any.whl (154 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 154.5/154.5 kB 393.4 kB/s eta 0:00:00
+Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 87.4/87.4 kB 982.5 kB/s eta 0:00:00
+Downloading watchfiles-1.3.0-cp310-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (458 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 458.4/458.4 kB 667.4 kB/s eta 0:00:00
+Downloading websockets-17.4-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (226 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 226.0/226.0 kB 1.2 MB/s eta 0:00:00
+Downloading pythainlp-5.4.0-py3-none-any.whl (21.9 MB)

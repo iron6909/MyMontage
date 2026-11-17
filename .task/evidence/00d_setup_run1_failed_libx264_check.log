@@ -1,0 +1,62 @@
+==> Reusing existing virtual environment: /home/banko/worktrees/MOZ-7/.venv (Python 3.11.15)
+==> Installing requirements.txt (CPU only; requirements-gpu.txt is not used)
+Looking in indexes: https://mirrors.aliyun.com/pypi/simple/
+Requirement already satisfied: pyyaml>=6.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 2)) (6.0.3)
+Requirement already satisfied: pydantic>=2.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 3)) (2.14.3)
+Requirement already satisfied: jsonschema>=4.20 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 4)) (4.26.0)
+Requirement already satisfied: python-dotenv>=1.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 5)) (1.2.4)
+Requirement already satisfied: Pillow>=10.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 6)) (13.0.0)
+Requirement already satisfied: numpy>=1.24 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 7)) (2.4.6)
+Requirement already satisfied: requests>=2.31 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 8)) (2.34.2)
+Requirement already satisfied: certifi>=2026.10.19 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 9)) (2026.10.23)
+Requirement already satisfied: google-auth>=2.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 10)) (2.62.2)
+Requirement already satisfied: google-genai>=1.0.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (3.4.0)
+Requirement already satisfied: openai>=2.44.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 12)) (3.52.0)
+Requirement already satisfied: fastapi>=0.110 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 15)) (0.163.1)
+Requirement already satisfied: uvicorn>=0.29 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 16)) (0.54.0)
+Requirement already satisfied: watchfiles>=0.21 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 17)) (1.3.0)
+Requirement already satisfied: websockets>=14.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 19)) (17.4)
+Requirement already satisfied: pythainlp>=5.0 in ./.venv/lib/python3.11/site-packages (from -r /home/banko/worktrees/MOZ-7/requirements.txt (line 20)) (5.4.0)
+Requirement already satisfied: annotated-types>=0.6.0 in ./.venv/lib/python3.11/site-packages (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3)) (0.8.0)
+Requirement already satisfied: pydantic-core==2.50.4 in ./.venv/lib/python3.11/site-packages (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3)) (2.50.4)
+Requirement already satisfied: typing-extensions>=4.16.0 in ./.venv/lib/python3.11/site-packages (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3)) (4.16.0)
+Requirement already satisfied: typing-inspection>=0.4.4 in ./.venv/lib/python3.11/site-packages (from pydantic>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 3)) (0.4.5)
+Requirement already satisfied: attrs>=22.2.0 in ./.venv/lib/python3.11/site-packages (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4)) (26.1.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./.venv/lib/python3.11/site-packages (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4)) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./.venv/lib/python3.11/site-packages (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4)) (0.37.0)
+Requirement already satisfied: rpds-py>=0.25.0 in ./.venv/lib/python3.11/site-packages (from jsonschema>=4.20->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 4)) (2026.9.1)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./.venv/lib/python3.11/site-packages (from requests>=2.31->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 8)) (3.5.2)
+Requirement already satisfied: idna<4,>=2.5 in ./.venv/lib/python3.11/site-packages (from requests>=2.31->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 8)) (3.20)
+Requirement already satisfied: urllib3<3,>=1.26 in ./.venv/lib/python3.11/site-packages (from requests>=2.31->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 8)) (2.8.0)
+Requirement already satisfied: pyasn1-modules>=0.2.1 in ./.venv/lib/python3.11/site-packages (from google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10)) (0.4.2)
+Requirement already satisfied: cryptography>=38.0.3 in ./.venv/lib/python3.11/site-packages (from google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10)) (50.0.2)
+Requirement already satisfied: anyio<5.0.0,>=4.8.0 in ./.venv/lib/python3.11/site-packages (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (4.16.0)
+Requirement already satisfied: httpx2<3.0.0,>=2.0.0 in ./.venv/lib/python3.11/site-packages (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (2.16.2)
+Requirement already satisfied: tenacity<9.2.0,>=8.2.3 in ./.venv/lib/python3.11/site-packages (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (9.1.4)
+Requirement already satisfied: distro<2,>=1.7.0 in ./.venv/lib/python3.11/site-packages (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (1.9.0)
+Requirement already satisfied: sniffio in ./.venv/lib/python3.11/site-packages (from google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (1.3.1)
+Requirement already satisfied: httpcore2==2.16.2 in ./.venv/lib/python3.11/site-packages (from httpx2<3.0.0,>=2.0.0->google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (2.16.2)
+Requirement already satisfied: truststore>=0.10 in ./.venv/lib/python3.11/site-packages (from httpx2<3.0.0,>=2.0.0->google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (0.10.5)
+Requirement already satisfied: h11>=0.16 in ./.venv/lib/python3.11/site-packages (from httpcore2==2.16.2->httpx2<3.0.0,>=2.0.0->google-genai>=1.0.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 11)) (0.16.0)
+Requirement already satisfied: jiter<1,>=0.16.0 in ./.venv/lib/python3.11/site-packages (from openai>=2.44.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 12)) (0.19.0)
+Requirement already satisfied: starlette>=0.46.0 in ./.venv/lib/python3.11/site-packages (from fastapi>=0.110->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 15)) (1.10.0)
+Requirement already satisfied: annotated-doc>=0.0.2 in ./.venv/lib/python3.11/site-packages (from fastapi>=0.110->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 15)) (0.0.6)
+Requirement already satisfied: opentelemetry-api>=1.44.0 in ./.venv/lib/python3.11/site-packages (from fastapi>=0.110->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 15)) (1.45.2)
+Requirement already satisfied: click>=7.0 in ./.venv/lib/python3.11/site-packages (from uvicorn>=0.29->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 16)) (8.5.1)
+Requirement already satisfied: cffi>=2.0.0 in ./.venv/lib/python3.11/site-packages (from cryptography>=38.0.3->google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10)) (2.1.1)
+Requirement already satisfied: pycparser in ./.venv/lib/python3.11/site-packages (from cffi>=2.0.0->cryptography>=38.0.3->google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10)) (3.12)
+Requirement already satisfied: pyasn1<0.7.0,>=0.6.1 in ./.venv/lib/python3.11/site-packages (from pyasn1-modules>=0.2.1->google-auth>=2.0->-r /home/banko/worktrees/MOZ-7/requirements.txt (line 10)) (0.6.5)
+==> piper-tts already installed (usage: piper [-h] -m MODEL [-c CONFIG] [-f OUTPUT_FILE] [-d OUTPUT_DIR])
+==> Downloading Piper voice: zh_CN-huayan-medium -> /home/banko/.piper/models
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100    342 100    342   0      0    331      0   00:01   00:01            331100    342 100    342   0      0    331      0   00:01   00:01            331100    342 100    342   0      0    331      0   00:01   00:01            331
+  0      0   0      0   0      0      0      0           00:01              0100   4822 100   4822   0      0   3757      0   00:01   00:01              0100   4822 100   4822   0      0   3754      0   00:01   00:01              0100   4822 100   4822   0      0   3753      0   00:01   00:01              0
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0100   1074 100   1074   0      0   1170      0                              0100   1074 100   1074   0      0   1169      0                              0
+  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0           00:01              0  0 60.27M   0 311.5k   0      0 106.6k      0   09:38   00:02   09:36 155.5k  3 60.27M   3  2.27M   0      0 593.2k      0   01:44   00:03   01:41 774.9k 18 60.27M  18 10.92M   0      0  2.21M      0   00:27   00:04   00:23  2.72M 27 60.27M  27 16.81M   0      0  2.83M      0   00:21   00:05   00:16  3.34M 45 60.27M  45 27.33M   0      0  3.93M      0   00:15   00:06   00:09  5.44M 57 60.27M  57 34.59M   0      0  4.24M      0   00:14   00:08   00:06  6.56M 75 60.27M  75 45.63M   0      0  4.98M      0   00:12   00:09   00:03  8.30M 90 60.27M  90 54.32M   0      0  5.20M      0   00:11   00:10   00:01  7.87M100 60.27M 100 60.27M   0      0  5.48M      0   00:10   00:10          7.87M100 60.27M 100 60.27M   0      0  5.48M      0   00:10   00:10          7.87M100 60.27M 100 60.27M   0      0  5.47M      0   00:10   00:10          7.87M
+==> FFmpeg: /usr/bin/ffmpeg
+==> FFprobe: /usr/bin/ffprobe
+ERROR: /usr/bin/ffmpeg has no libx264 encoder; sample rendering needs it.
+EXIT_CODE=1

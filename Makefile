@@ -9,7 +9,7 @@ PIP = "$(RUN_PYTHON)" -m pip
 
 .DEFAULT_GOAL := setup
 
-.PHONY: setup install install-dev install-gpu bootstrap test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv
+.PHONY: setup install install-dev install-gpu bootstrap test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv local-setup sample
 
 # ---- Virtual environment ----
 
@@ -102,6 +102,16 @@ test: ensure-venv
 
 test-contracts: ensure-venv
 	"$(RUN_PYTHON)" -m pytest tests/contracts/ -v
+
+# ---- Local-only deployment (no API keys, no GPU) ----
+
+# .venv + requirements.txt + Piper voice + working FFmpeg. Idempotent.
+local-setup:
+	bash scripts/setup_local.sh
+
+# Render out/sample.mp4 from the built-in sample copy with local TTS + FFmpeg.
+sample: ensure-venv
+	"$(RUN_PYTHON)" scripts/render_local_sample.py
 
 # ---- Utilities ----
 
