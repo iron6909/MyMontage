@@ -1,0 +1,1876 @@
+{
+  "epId": "ep01",
+  "status": "rendered",
+  "episode": "VOL. 01 · CHEKHOV",
+  "level": "CEFR A2 · OXFORD 3000",
+  "title": "The Chameleon",
+  "titleCn": "契诃夫经典讽刺短篇：《变色龙》",
+  "hookDurationSec": 0,
+  "endingCardDurationSec": 3.5,
+  "mainAudio": "audio/ep01_main.mp3",
+  "showCnSubtitle": true,
+  "audioDurationSec": 292.36,
+  "characterAnchor": "Officer Leo, a pompous middle-aged man with dark hair and a large mustache wearing a police peaked cap",
+  "scenes": [
+    {
+      "id": "scene1",
+      "label": "THE QUIET SQUARE",
+      "startSec": 3.9,
+      "endSec": 16.9,
+      "cameraMotion": "slow_zoom_in",
+      "transition": "push_035",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding a small wooden crate of apples; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat; a tiny white puppy peeking from behind the crate",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding a small wooden crate of apples; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat; a tiny white puppy peeking from behind the crate, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene2",
+      "label": "THE BLEEDING HAND",
+      "startSec": 22.12,
+      "endSec": 50.24,
+      "cameraMotion": "slow_zoom_out",
+      "transition": "dissolve_030",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding up one hand with a hurt finger; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat; a tiny white puppy beside a small basket of spilled apples",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding up one hand with a hurt finger; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat; a tiny white puppy beside a small basket of spilled apples, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene3",
+      "label": "THE NEW COAT",
+      "startSec": 55.06,
+      "endSec": 74.898,
+      "cameraMotion": "slow_zoom_in",
+      "transition": "push_035",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat, chin high and chest puffed out; on the right a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt; a tiny white puppy sitting between the two men",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat, chin high and chest puffed out; on the right a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt; a tiny white puppy sitting between the two men, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene4",
+      "label": "THE ORDER",
+      "startSec": 80.22,
+      "endSec": 102.32,
+      "cameraMotion": "slow_zoom_out",
+      "transition": "slideup_050",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat pulling off his overcoat and holding it over one arm; on the right a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding his hurt hand; a tiny white puppy between the two men",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat pulling off his overcoat and holding it over one arm; on the right a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding his hurt hand; a tiny white puppy between the two men, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene5",
+      "label": "THE GENERAL'S DOG",
+      "startSec": 107.02,
+      "endSec": 138.96,
+      "cameraMotion": "slow_zoom_in",
+      "transition": "dissolve_030",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat, his face pale with shock; a tiny white puppy at the officer's feet",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat, his face pale with shock; a tiny white puppy at the officer's feet, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene6",
+      "label": "THE BLAME",
+      "startSec": 144.2,
+      "endSec": 165.72,
+      "cameraMotion": "slow_zoom_out",
+      "transition": "push_035",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding up his hurt hand; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat pointing at the workman; a tiny white puppy at the officer's feet",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding up his hurt hand; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat pointing at the workman; a tiny white puppy at the officer's feet, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene7",
+      "label": "THE COOK",
+      "startSec": 171.45,
+      "endSec": 198.0,
+      "cameraMotion": "slow_zoom_in",
+      "transition": "slideup_050",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a thin elderly civilian man, bare-headed with short grey hair, wearing a white chef apron over a plain shirt; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat with a stern face; a tiny white puppy between the two men",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a thin elderly civilian man, bare-headed with short grey hair, wearing a white chef apron over a plain shirt; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat with a stern face; a tiny white puppy between the two men, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene8",
+      "label": "THE BAD ANIMAL",
+      "startSec": 203.14,
+      "endSec": 222.12,
+      "cameraMotion": "slow_zoom_out",
+      "transition": "dissolve_030",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat pulling his overcoat off one shoulder and pointing down; on the right a thin elderly civilian man, bare-headed with short grey hair, wearing a white chef apron over a plain shirt; a tiny white puppy near the officer",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat pulling his overcoat off one shoulder and pointing down; on the right a thin elderly civilian man, bare-headed with short grey hair, wearing a white chef apron over a plain shirt; a tiny white puppy near the officer, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene9a",
+      "label": "THE REVEAL",
+      "startSec": 227.48,
+      "endSec": 237.84,
+      "cameraMotion": "slow_zoom_in",
+      "transition": "push_035",
+      "visualAction": "officer listens, face shifting, as the cook speaks",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a thin elderly civilian man, bare-headed with short grey hair, wearing a white chef apron over a plain shirt raising one hand; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat smiling widely and bending to pick up the puppy; a tiny white puppy in his hands, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene9b",
+      "label": "THE FAVNING PICKUP",
+      "startSec": 242.42,
+      "endSec": 261.0,
+      "cameraMotion": "slow_zoom_out",
+      "transition": "dissolve_030",
+      "visualAction": "officer crouches with a wide fawning grin, cradling the puppy",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a thin elderly civilian man, bare-headed with short grey hair, wearing a white chef apron over a plain shirt raising one hand; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat smiling widely and bending to pick up the puppy; a tiny white puppy in his hands, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    },
+    {
+      "id": "scene10",
+      "label": "THE WARNING",
+      "startSec": 265.92,
+      "endSec": 291.7,
+      "cameraMotion": "slow_zoom_out",
+      "transition": "slideup_050",
+      "visualAction": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding his hurt hand; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat turning to leave with a tiny white puppy under his arm",
+      "prompt": "two men and a tiny white puppy isolated on solid white; on the left a stout civilian workman wearing a grey flat newsboy cap and a brown leather bib apron with a chest pocket over a plain woollen shirt holding his hurt hand; on the right a tall mustached officer wearing a black peaked uniform cap with a metal badge and a long dark double-breasted police overcoat turning to leave with a tiny white puppy under his arm, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, muted watercolor wash, isolated on solid white background, empty white background, minimalist composition, ink and watercolor sketch, editorial cartoon illustration in the style of The New Yorker magazine, clean black ink linework, expressive crosshatching, subtle muted watercolor wash, isolated on pure solid white background #FFFFFF, minimalist composition",
+      "negativePrompt": "duplicate person, two policemen, two officers, extra person, cloned face, two dogs, extra dog, multiple dogs, second dog, large dog, apron on officer, peaked cap on worker, pink cheeks, woman, female, kitchen, street, city, buildings, cars, crowd, extra people, text, watermark, signature, border, frame, yellow background, photorealistic, 3d, anime, anthropomorphic, humanoid dog, dog wearing clothes, bipedal dog, dog in a suit, dog standing on hind legs, glasses, spectacles, yellow paper, stationery, parchment, pencil, paper, pen"
+    }
+  ],
+  "sentences": [
+    {
+      "id": 1,
+      "sceneId": "scene1",
+      "startSec": 3.9,
+      "endSec": 7.16,
+      "text": "It was a quiet afternoon in the market square.",
+      "textCn": "集市广场上，那是一个宁静的午后。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "It",
+          "start": 3.9,
+          "end": 4.0
+        },
+        {
+          "word": "was",
+          "start": 4.004,
+          "end": 5.02
+        },
+        {
+          "word": "a",
+          "start": 5.024,
+          "end": 5.14
+        },
+        {
+          "word": "quiet",
+          "start": 5.144,
+          "end": 5.4
+        },
+        {
+          "word": "afternoon",
+          "start": 5.404,
+          "end": 6.1
+        },
+        {
+          "word": "in",
+          "start": 6.104,
+          "end": 6.48
+        },
+        {
+          "word": "the",
+          "start": 6.484,
+          "end": 6.56
+        },
+        {
+          "word": "market",
+          "start": 6.564,
+          "end": 6.78
+        },
+        {
+          "word": "square.",
+          "start": 6.784,
+          "end": 7.16
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "sceneId": "scene1",
+      "startSec": 13.44,
+      "endSec": 16.9,
+      "text": "Then a sharp cry broke the silence.",
+      "textCn": "接着，一声尖叫打破了沉默。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "Then",
+          "start": 13.44,
+          "end": 14.2
+        },
+        {
+          "word": "a",
+          "start": 14.204,
+          "end": 14.64
+        },
+        {
+          "word": "sharp",
+          "start": 14.644,
+          "end": 15.12
+        },
+        {
+          "word": "cry",
+          "start": 15.124,
+          "end": 15.62
+        },
+        {
+          "word": "broke",
+          "start": 15.624,
+          "end": 16.42
+        },
+        {
+          "word": "the",
+          "start": 16.424,
+          "end": 16.62
+        },
+        {
+          "word": "silence.",
+          "start": 16.624,
+          "end": 16.9
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "sceneId": "scene2",
+      "startSec": 22.12,
+      "endSec": 27.64,
+      "text": "A small white dog ran out from behind a stall and bit a carpenter's finger.",
+      "textCn": "一只小白狗从摊位后面跑出来，咬住了一个木匠的手指。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "A",
+          "start": 22.12,
+          "end": 22.88
+        },
+        {
+          "word": "small",
+          "start": 22.884,
+          "end": 23.14
+        },
+        {
+          "word": "white",
+          "start": 23.144,
+          "end": 23.52
+        },
+        {
+          "word": "dog",
+          "start": 23.524,
+          "end": 23.96
+        },
+        {
+          "word": "ran",
+          "start": 23.964,
+          "end": 24.58
+        },
+        {
+          "word": "out",
+          "start": 24.584,
+          "end": 24.9
+        },
+        {
+          "word": "from",
+          "start": 24.904,
+          "end": 25.16
+        },
+        {
+          "word": "behind",
+          "start": 25.164,
+          "end": 25.42
+        },
+        {
+          "word": "a",
+          "start": 25.424,
+          "end": 25.62
+        },
+        {
+          "word": "stall",
+          "start": 25.624,
+          "end": 25.92
+        },
+        {
+          "word": "and",
+          "start": 25.924,
+          "end": 26.5
+        },
+        {
+          "word": "bit",
+          "start": 26.504,
+          "end": 26.72
+        },
+        {
+          "word": "a",
+          "start": 26.724,
+          "end": 26.86
+        },
+        {
+          "word": "carpenter's",
+          "start": 26.864,
+          "end": 27.44
+        },
+        {
+          "word": "finger.",
+          "start": 27.444,
+          "end": 27.64
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "sceneId": "scene2",
+      "startSec": 32.32,
+      "endSec": 42.04,
+      "text": "The carpenter held up his bleeding finger and cried, \"Look what that dog did to me!\"",
+      "textCn": "木匠举起流血的手指，喊道：“看看那只狗对我做了什么！”",
+      "speaker": "carpenter",
+      "words": [
+        {
+          "word": "The",
+          "start": 32.32,
+          "end": 32.92
+        },
+        {
+          "word": "carpenter",
+          "start": 32.924,
+          "end": 33.38
+        },
+        {
+          "word": "held",
+          "start": 33.384,
+          "end": 33.82
+        },
+        {
+          "word": "up",
+          "start": 33.824,
+          "end": 34.08
+        },
+        {
+          "word": "his",
+          "start": 34.084,
+          "end": 34.28
+        },
+        {
+          "word": "bleeding",
+          "start": 34.284,
+          "end": 34.68
+        },
+        {
+          "word": "finger",
+          "start": 34.684,
+          "end": 35.38
+        },
+        {
+          "word": "and",
+          "start": 35.384,
+          "end": 36.02
+        },
+        {
+          "word": "cried,",
+          "start": 36.024,
+          "end": 36.6
+        },
+        {
+          "word": "\"Look",
+          "start": 40.58,
+          "end": 41.16
+        },
+        {
+          "word": "what",
+          "start": 41.164,
+          "end": 41.28
+        },
+        {
+          "word": "that",
+          "start": 41.284,
+          "end": 41.42
+        },
+        {
+          "word": "dog",
+          "start": 41.424,
+          "end": 41.56
+        },
+        {
+          "word": "did",
+          "start": 41.564,
+          "end": 41.78
+        },
+        {
+          "word": "to",
+          "start": 41.784,
+          "end": 41.88
+        },
+        {
+          "word": "me!\"",
+          "start": 41.884,
+          "end": 42.04
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "sceneId": "scene2",
+      "startSec": 46.72,
+      "endSec": 50.24,
+      "text": "A crowd gathered at once and stared at the little dog.",
+      "textCn": "人群立刻围了上来，盯着那只小狗。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "A",
+          "start": 46.72,
+          "end": 47.02
+        },
+        {
+          "word": "crowd",
+          "start": 47.024,
+          "end": 47.3
+        },
+        {
+          "word": "gathered",
+          "start": 47.304,
+          "end": 47.92
+        },
+        {
+          "word": "at",
+          "start": 47.924,
+          "end": 48.1
+        },
+        {
+          "word": "once",
+          "start": 48.104,
+          "end": 48.32
+        },
+        {
+          "word": "and",
+          "start": 48.324,
+          "end": 48.96
+        },
+        {
+          "word": "stared",
+          "start": 48.964,
+          "end": 49.34
+        },
+        {
+          "word": "at",
+          "start": 49.344,
+          "end": 49.68
+        },
+        {
+          "word": "the",
+          "start": 49.684,
+          "end": 49.78
+        },
+        {
+          "word": "little",
+          "start": 49.784,
+          "end": 49.92
+        },
+        {
+          "word": "dog.",
+          "start": 49.924,
+          "end": 50.24
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "sceneId": "scene3",
+      "startSec": 55.06,
+      "endSec": 60.78,
+      "text": "Officer Leo walked past the stalls in a dark new coat, and puffed out his chest.",
+      "textCn": "利奥警官穿着一件深色新大衣走过摊位，得意地挺起胸膛。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "Officer",
+          "start": 55.06,
+          "end": 55.72
+        },
+        {
+          "word": "Leo",
+          "start": 55.724,
+          "end": 56.0
+        },
+        {
+          "word": "walked",
+          "start": 56.004,
+          "end": 56.54
+        },
+        {
+          "word": "past",
+          "start": 56.544,
+          "end": 56.92
+        },
+        {
+          "word": "the",
+          "start": 56.924,
+          "end": 57.08
+        },
+        {
+          "word": "stalls",
+          "start": 57.084,
+          "end": 57.4
+        },
+        {
+          "word": "in",
+          "start": 57.404,
+          "end": 57.88
+        },
+        {
+          "word": "a",
+          "start": 57.884,
+          "end": 57.98
+        },
+        {
+          "word": "dark",
+          "start": 57.984,
+          "end": 58.34
+        },
+        {
+          "word": "new",
+          "start": 58.344,
+          "end": 58.66
+        },
+        {
+          "word": "coat,",
+          "start": 58.664,
+          "end": 58.96
+        },
+        {
+          "word": "and",
+          "start": 58.964,
+          "end": 59.58
+        },
+        {
+          "word": "puffed",
+          "start": 59.584,
+          "end": 60.2
+        },
+        {
+          "word": "out",
+          "start": 60.204,
+          "end": 60.36
+        },
+        {
+          "word": "his",
+          "start": 60.364,
+          "end": 60.48
+        },
+        {
+          "word": "chest.",
+          "start": 60.484,
+          "end": 60.78
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "sceneId": "scene3",
+      "startSec": 66.18,
+      "endSec": 74.898,
+      "text": "\"I will get rid of that dog,\" he said, and pulled off his coat.",
+      "textCn": "“我会处理掉那只狗，”他说着，脱下了大衣。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"I",
+          "start": 66.18,
+          "end": 66.62
+        },
+        {
+          "word": "will",
+          "start": 66.624,
+          "end": 67.0
+        },
+        {
+          "word": "get",
+          "start": 67.004,
+          "end": 67.44
+        },
+        {
+          "word": "rid",
+          "start": 67.444,
+          "end": 67.7
+        },
+        {
+          "word": "of",
+          "start": 67.704,
+          "end": 67.86
+        },
+        {
+          "word": "that",
+          "start": 67.864,
+          "end": 68.02
+        },
+        {
+          "word": "dog,\"",
+          "start": 68.024,
+          "end": 68.34
+        },
+        {
+          "word": "he",
+          "start": 69.1,
+          "end": 69.4
+        },
+        {
+          "word": "said,",
+          "start": 69.404,
+          "end": 69.64
+        },
+        {
+          "word": "and",
+          "start": 69.644,
+          "end": 69.78
+        },
+        {
+          "word": "pulled",
+          "start": 69.784,
+          "end": 70.06
+        },
+        {
+          "word": "off",
+          "start": 70.064,
+          "end": 70.92
+        },
+        {
+          "word": "his",
+          "start": 70.924,
+          "end": 71.68
+        },
+        {
+          "word": "coat.",
+          "start": 71.69,
+          "end": 74.898
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "sceneId": "scene4",
+      "startSec": 80.22,
+      "endSec": 88.86,
+      "text": "\"A dog like that is a danger to everyone,\" he said.",
+      "textCn": "“那样的狗对所有人都是危险，”他说。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"A",
+          "start": 80.22,
+          "end": 80.6
+        },
+        {
+          "word": "dog",
+          "start": 80.604,
+          "end": 80.78
+        },
+        {
+          "word": "like",
+          "start": 80.784,
+          "end": 81.04
+        },
+        {
+          "word": "that",
+          "start": 81.044,
+          "end": 81.42
+        },
+        {
+          "word": "is",
+          "start": 81.424,
+          "end": 81.86
+        },
+        {
+          "word": "a",
+          "start": 81.864,
+          "end": 81.96
+        },
+        {
+          "word": "danger",
+          "start": 81.964,
+          "end": 82.44
+        },
+        {
+          "word": "to",
+          "start": 82.444,
+          "end": 82.7
+        },
+        {
+          "word": "everyone,\"",
+          "start": 82.704,
+          "end": 83.16
+        },
+        {
+          "word": "he",
+          "start": 87.78,
+          "end": 88.58
+        },
+        {
+          "word": "said.",
+          "start": 88.584,
+          "end": 88.86
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "sceneId": "scene4",
+      "startSec": 93.62,
+      "endSec": 102.32,
+      "text": "\"Take it away and punish it at once,\" he ordered.",
+      "textCn": "“把它带走，立刻严惩，”他命令道。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"Take",
+          "start": 93.62,
+          "end": 94.02
+        },
+        {
+          "word": "it",
+          "start": 94.024,
+          "end": 94.2
+        },
+        {
+          "word": "away",
+          "start": 94.204,
+          "end": 94.44
+        },
+        {
+          "word": "and",
+          "start": 94.444,
+          "end": 95.08
+        },
+        {
+          "word": "punish",
+          "start": 95.084,
+          "end": 95.62
+        },
+        {
+          "word": "it",
+          "start": 95.624,
+          "end": 95.88
+        },
+        {
+          "word": "at",
+          "start": 95.884,
+          "end": 96.12
+        },
+        {
+          "word": "once,\"",
+          "start": 96.124,
+          "end": 96.4
+        },
+        {
+          "word": "he",
+          "start": 101.24,
+          "end": 102.02
+        },
+        {
+          "word": "ordered.",
+          "start": 102.024,
+          "end": 102.32
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "sceneId": "scene5",
+      "startSec": 107.02,
+      "endSec": 116.42,
+      "text": "A voice in the crowd called, \"It looks like the General's dog.\"",
+      "textCn": "人群里有个声音喊道：“那看起来像是将军的狗。”",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "A",
+          "start": 107.02,
+          "end": 107.66
+        },
+        {
+          "word": "voice",
+          "start": 107.664,
+          "end": 107.92
+        },
+        {
+          "word": "in",
+          "start": 107.924,
+          "end": 108.2
+        },
+        {
+          "word": "the",
+          "start": 108.204,
+          "end": 108.3
+        },
+        {
+          "word": "crowd",
+          "start": 108.304,
+          "end": 108.54
+        },
+        {
+          "word": "called,",
+          "start": 108.544,
+          "end": 108.98
+        },
+        {
+          "word": "\"It",
+          "start": 113.98,
+          "end": 114.68
+        },
+        {
+          "word": "looks",
+          "start": 114.684,
+          "end": 114.9
+        },
+        {
+          "word": "like",
+          "start": 114.904,
+          "end": 115.28
+        },
+        {
+          "word": "the",
+          "start": 115.284,
+          "end": 115.54
+        },
+        {
+          "word": "General's",
+          "start": 115.544,
+          "end": 116.16
+        },
+        {
+          "word": "dog.\"",
+          "start": 116.164,
+          "end": 116.42
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "sceneId": "scene5",
+      "startSec": 121.26,
+      "endSec": 124.14,
+      "text": "The colour drained from the officer's face.",
+      "textCn": "警官脸上的血色褪去。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "The",
+          "start": 121.26,
+          "end": 121.98
+        },
+        {
+          "word": "colour",
+          "start": 121.984,
+          "end": 122.24
+        },
+        {
+          "word": "drained",
+          "start": 122.244,
+          "end": 122.66
+        },
+        {
+          "word": "from",
+          "start": 122.664,
+          "end": 123.22
+        },
+        {
+          "word": "the",
+          "start": 123.224,
+          "end": 123.36
+        },
+        {
+          "word": "officer's",
+          "start": 123.364,
+          "end": 123.92
+        },
+        {
+          "word": "face.",
+          "start": 123.924,
+          "end": 124.14
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "sceneId": "scene5",
+      "startSec": 129.36,
+      "endSec": 138.96,
+      "text": "He put his coat back on and said, \"The carpenter cut himself.\"",
+      "textCn": "他重新穿上大衣，说：“是木匠自己划伤的。”",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "He",
+          "start": 129.36,
+          "end": 130.04
+        },
+        {
+          "word": "put",
+          "start": 130.044,
+          "end": 130.2
+        },
+        {
+          "word": "his",
+          "start": 130.204,
+          "end": 130.36
+        },
+        {
+          "word": "coat",
+          "start": 130.364,
+          "end": 130.56
+        },
+        {
+          "word": "back",
+          "start": 130.564,
+          "end": 130.86
+        },
+        {
+          "word": "on",
+          "start": 130.864,
+          "end": 131.16
+        },
+        {
+          "word": "and",
+          "start": 131.164,
+          "end": 131.38
+        },
+        {
+          "word": "said,",
+          "start": 131.384,
+          "end": 132.16
+        },
+        {
+          "word": "\"The",
+          "start": 136.92,
+          "end": 137.58
+        },
+        {
+          "word": "carpenter",
+          "start": 137.584,
+          "end": 138.06
+        },
+        {
+          "word": "cut",
+          "start": 138.064,
+          "end": 138.66
+        },
+        {
+          "word": "himself.\"",
+          "start": 138.664,
+          "end": 138.96
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "sceneId": "scene6",
+      "startSec": 144.2,
+      "endSec": 152.14,
+      "text": "\"You cut your own finger,\" the officer said.",
+      "textCn": "“是你自己划伤了手指，”警官说。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"You",
+          "start": 144.2,
+          "end": 145.04
+        },
+        {
+          "word": "cut",
+          "start": 145.044,
+          "end": 145.34
+        },
+        {
+          "word": "your",
+          "start": 145.344,
+          "end": 145.64
+        },
+        {
+          "word": "own",
+          "start": 145.644,
+          "end": 145.9
+        },
+        {
+          "word": "finger,\"",
+          "start": 145.904,
+          "end": 146.48
+        },
+        {
+          "word": "the",
+          "start": 151.12,
+          "end": 151.36
+        },
+        {
+          "word": "officer",
+          "start": 151.364,
+          "end": 151.64
+        },
+        {
+          "word": "said.",
+          "start": 151.644,
+          "end": 152.14
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "sceneId": "scene6",
+      "startSec": 157.66,
+      "endSec": 165.72,
+      "text": "\"Do not blame the poor little dog,\" he added.",
+      "textCn": "“别怪那只可怜的小狗，”他补充道。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"Do",
+          "start": 157.66,
+          "end": 157.98
+        },
+        {
+          "word": "not",
+          "start": 157.984,
+          "end": 158.28
+        },
+        {
+          "word": "blame",
+          "start": 158.284,
+          "end": 158.68
+        },
+        {
+          "word": "the",
+          "start": 158.684,
+          "end": 159.12
+        },
+        {
+          "word": "poor",
+          "start": 159.124,
+          "end": 159.3
+        },
+        {
+          "word": "little",
+          "start": 159.304,
+          "end": 159.6
+        },
+        {
+          "word": "dog,\"",
+          "start": 159.604,
+          "end": 160.02
+        },
+        {
+          "word": "he",
+          "start": 164.82,
+          "end": 165.52
+        },
+        {
+          "word": "added.",
+          "start": 165.524,
+          "end": 165.72
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "sceneId": "scene7",
+      "startSec": 171.45,
+      "endSec": 174.74,
+      "text": "Just then, the General's cook came through the crowd.",
+      "textCn": "就在这时，将军家的厨师从人群中走了出来。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "Just",
+          "start": 171.45,
+          "end": 171.84
+        },
+        {
+          "word": "then,",
+          "start": 171.844,
+          "end": 172.16
+        },
+        {
+          "word": "the",
+          "start": 172.164,
+          "end": 172.92
+        },
+        {
+          "word": "General's",
+          "start": 172.924,
+          "end": 173.36
+        },
+        {
+          "word": "cook",
+          "start": 173.364,
+          "end": 173.62
+        },
+        {
+          "word": "came",
+          "start": 173.624,
+          "end": 174.18
+        },
+        {
+          "word": "through",
+          "start": 174.184,
+          "end": 174.42
+        },
+        {
+          "word": "the",
+          "start": 174.424,
+          "end": 174.54
+        },
+        {
+          "word": "crowd.",
+          "start": 174.544,
+          "end": 174.74
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "sceneId": "scene7",
+      "startSec": 178.9,
+      "endSec": 189.7,
+      "text": "The cook looked at the dog and said, \"The General has no such dog.\"",
+      "textCn": "厨师看了看狗，说：“将军家没有这样的狗。”",
+      "speaker": "cook",
+      "words": [
+        {
+          "word": "The",
+          "start": 178.9,
+          "end": 180.22
+        },
+        {
+          "word": "cook",
+          "start": 180.224,
+          "end": 180.42
+        },
+        {
+          "word": "looked",
+          "start": 180.424,
+          "end": 180.7
+        },
+        {
+          "word": "at",
+          "start": 180.704,
+          "end": 180.94
+        },
+        {
+          "word": "the",
+          "start": 180.944,
+          "end": 181.02
+        },
+        {
+          "word": "dog",
+          "start": 181.024,
+          "end": 181.42
+        },
+        {
+          "word": "and",
+          "start": 181.424,
+          "end": 181.66
+        },
+        {
+          "word": "said,",
+          "start": 181.664,
+          "end": 181.96
+        },
+        {
+          "word": "\"The",
+          "start": 187.52,
+          "end": 188.04
+        },
+        {
+          "word": "General",
+          "start": 188.044,
+          "end": 188.38
+        },
+        {
+          "word": "has",
+          "start": 188.384,
+          "end": 188.84
+        },
+        {
+          "word": "no",
+          "start": 188.844,
+          "end": 189.12
+        },
+        {
+          "word": "such",
+          "start": 189.124,
+          "end": 189.38
+        },
+        {
+          "word": "dog.\"",
+          "start": 189.384,
+          "end": 189.7
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "sceneId": "scene7",
+      "startSec": 194.38,
+      "endSec": 198.0,
+      "text": "The officer's smile disappeared, and he pulled off his coat again.",
+      "textCn": "警官的笑容消失了，他又一次脱下了大衣。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "The",
+          "start": 194.38,
+          "end": 194.72
+        },
+        {
+          "word": "officer's",
+          "start": 194.724,
+          "end": 195.2
+        },
+        {
+          "word": "smile",
+          "start": 195.204,
+          "end": 195.52
+        },
+        {
+          "word": "disappeared,",
+          "start": 195.524,
+          "end": 195.9
+        },
+        {
+          "word": "and",
+          "start": 195.904,
+          "end": 196.84
+        },
+        {
+          "word": "he",
+          "start": 196.844,
+          "end": 196.92
+        },
+        {
+          "word": "pulled",
+          "start": 196.924,
+          "end": 197.12
+        },
+        {
+          "word": "off",
+          "start": 197.124,
+          "end": 197.34
+        },
+        {
+          "word": "his",
+          "start": 197.344,
+          "end": 197.5
+        },
+        {
+          "word": "coat",
+          "start": 197.504,
+          "end": 197.72
+        },
+        {
+          "word": "again.",
+          "start": 197.724,
+          "end": 198.0
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "sceneId": "scene8",
+      "startSec": 203.14,
+      "endSec": 210.06,
+      "text": "\"This is a bad little animal,\" he said.",
+      "textCn": "“这是一只坏畜生，”他说。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"This",
+          "start": 203.14,
+          "end": 203.5
+        },
+        {
+          "word": "is",
+          "start": 203.504,
+          "end": 203.9
+        },
+        {
+          "word": "a",
+          "start": 203.904,
+          "end": 204.06
+        },
+        {
+          "word": "bad",
+          "start": 204.064,
+          "end": 204.54
+        },
+        {
+          "word": "little",
+          "start": 204.544,
+          "end": 204.94
+        },
+        {
+          "word": "animal,\"",
+          "start": 204.944,
+          "end": 205.16
+        },
+        {
+          "word": "he",
+          "start": 209.6,
+          "end": 209.8
+        },
+        {
+          "word": "said.",
+          "start": 209.804,
+          "end": 210.06
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "sceneId": "scene8",
+      "startSec": 215.28,
+      "endSec": 222.12,
+      "text": "\"It should be caught and thrown out,\" he added.",
+      "textCn": "“应该把它抓起来扔出去，”他补充道。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"It",
+          "start": 215.28,
+          "end": 215.48
+        },
+        {
+          "word": "should",
+          "start": 215.484,
+          "end": 215.58
+        },
+        {
+          "word": "be",
+          "start": 215.584,
+          "end": 215.7
+        },
+        {
+          "word": "caught",
+          "start": 215.704,
+          "end": 216.0
+        },
+        {
+          "word": "and",
+          "start": 216.004,
+          "end": 216.42
+        },
+        {
+          "word": "thrown",
+          "start": 216.424,
+          "end": 216.7
+        },
+        {
+          "word": "out,\"",
+          "start": 216.704,
+          "end": 216.94
+        },
+        {
+          "word": "he",
+          "start": 221.08,
+          "end": 221.82
+        },
+        {
+          "word": "added.",
+          "start": 221.824,
+          "end": 222.12
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "sceneId": "scene9a",
+      "startSec": 227.48,
+      "endSec": 237.84,
+      "text": "The cook raised a hand and said, \"Wait. This is the dog of the General's visiting brother.\"",
+      "textCn": "厨师抬起手说：“等等。这是将军来访的哥哥的狗。”",
+      "speaker": "cook",
+      "words": [
+        {
+          "word": "The",
+          "start": 227.48,
+          "end": 227.82
+        },
+        {
+          "word": "cook",
+          "start": 227.824,
+          "end": 228.0
+        },
+        {
+          "word": "raised",
+          "start": 228.004,
+          "end": 228.5
+        },
+        {
+          "word": "a",
+          "start": 228.504,
+          "end": 228.76
+        },
+        {
+          "word": "hand",
+          "start": 228.764,
+          "end": 229.1
+        },
+        {
+          "word": "and",
+          "start": 229.104,
+          "end": 229.36
+        },
+        {
+          "word": "said,",
+          "start": 229.364,
+          "end": 229.6
+        },
+        {
+          "word": "\"Wait.",
+          "start": 233.42,
+          "end": 234.58
+        },
+        {
+          "word": "This",
+          "start": 235.26,
+          "end": 235.84
+        },
+        {
+          "word": "is",
+          "start": 235.844,
+          "end": 236.02
+        },
+        {
+          "word": "the",
+          "start": 236.024,
+          "end": 236.16
+        },
+        {
+          "word": "dog",
+          "start": 236.164,
+          "end": 236.48
+        },
+        {
+          "word": "of",
+          "start": 236.484,
+          "end": 236.64
+        },
+        {
+          "word": "the",
+          "start": 236.644,
+          "end": 236.74
+        },
+        {
+          "word": "General's",
+          "start": 236.744,
+          "end": 237.24
+        },
+        {
+          "word": "visiting",
+          "start": 237.244,
+          "end": 237.54
+        },
+        {
+          "word": "brother.\"",
+          "start": 237.544,
+          "end": 237.84
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "sceneId": "scene9b",
+      "startSec": 242.42,
+      "endSec": 246.84,
+      "text": "The officer's face changed at once, and a wide smile appeared.",
+      "textCn": "警官的脸色立刻变了，脸上堆起了大大的笑容。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "The",
+          "start": 242.42,
+          "end": 242.96
+        },
+        {
+          "word": "officer's",
+          "start": 242.964,
+          "end": 243.48
+        },
+        {
+          "word": "face",
+          "start": 243.484,
+          "end": 243.7
+        },
+        {
+          "word": "changed",
+          "start": 243.704,
+          "end": 244.18
+        },
+        {
+          "word": "at",
+          "start": 244.184,
+          "end": 244.48
+        },
+        {
+          "word": "once,",
+          "start": 244.484,
+          "end": 244.72
+        },
+        {
+          "word": "and",
+          "start": 245.38,
+          "end": 245.56
+        },
+        {
+          "word": "a",
+          "start": 245.564,
+          "end": 245.68
+        },
+        {
+          "word": "wide",
+          "start": 245.684,
+          "end": 245.84
+        },
+        {
+          "word": "smile",
+          "start": 245.844,
+          "end": 246.22
+        },
+        {
+          "word": "appeared.",
+          "start": 246.224,
+          "end": 246.84
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "sceneId": "scene9b",
+      "startSec": 251.86,
+      "endSec": 261.0,
+      "text": "\"A dear little dog like this must be protected,\" he said, and picked it up.",
+      "textCn": "“这样可爱的小狗必须好好保护，”他说着，把它抱了起来。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"A",
+          "start": 251.86,
+          "end": 252.24
+        },
+        {
+          "word": "dear",
+          "start": 252.244,
+          "end": 252.52
+        },
+        {
+          "word": "little",
+          "start": 252.524,
+          "end": 252.76
+        },
+        {
+          "word": "dog",
+          "start": 252.764,
+          "end": 253.08
+        },
+        {
+          "word": "like",
+          "start": 253.084,
+          "end": 253.38
+        },
+        {
+          "word": "this",
+          "start": 253.384,
+          "end": 253.76
+        },
+        {
+          "word": "must",
+          "start": 253.764,
+          "end": 254.16
+        },
+        {
+          "word": "be",
+          "start": 254.164,
+          "end": 254.52
+        },
+        {
+          "word": "protected,\"",
+          "start": 254.524,
+          "end": 254.92
+        },
+        {
+          "word": "he",
+          "start": 259.38,
+          "end": 259.8
+        },
+        {
+          "word": "said,",
+          "start": 259.804,
+          "end": 260.08
+        },
+        {
+          "word": "and",
+          "start": 260.084,
+          "end": 260.38
+        },
+        {
+          "word": "picked",
+          "start": 260.384,
+          "end": 260.6
+        },
+        {
+          "word": "it",
+          "start": 260.604,
+          "end": 260.8
+        },
+        {
+          "word": "up.",
+          "start": 260.804,
+          "end": 261.0
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "sceneId": "scene10",
+      "startSec": 265.92,
+      "endSec": 273.48,
+      "text": "\"Next time, watch your step,\" he told the carpenter.",
+      "textCn": "“下次，小心点，”他对木匠说。",
+      "speaker": "leo",
+      "words": [
+        {
+          "word": "\"Next",
+          "start": 265.92,
+          "end": 266.22
+        },
+        {
+          "word": "time,",
+          "start": 266.224,
+          "end": 266.62
+        },
+        {
+          "word": "watch",
+          "start": 266.88,
+          "end": 267.0
+        },
+        {
+          "word": "your",
+          "start": 267.004,
+          "end": 267.3
+        },
+        {
+          "word": "step,\"",
+          "start": 267.304,
+          "end": 267.68
+        },
+        {
+          "word": "he",
+          "start": 272.48,
+          "end": 272.72
+        },
+        {
+          "word": "told",
+          "start": 272.724,
+          "end": 272.92
+        },
+        {
+          "word": "the",
+          "start": 272.924,
+          "end": 273.1
+        },
+        {
+          "word": "carpenter.",
+          "start": 273.104,
+          "end": 273.48
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "sceneId": "scene10",
+      "startSec": 278.56,
+      "endSec": 283.84,
+      "text": "He buttoned his coat, put the little dog under his arm, and walked away.",
+      "textCn": "他扣好大衣，把小狗夹在胳膊下，转身走开了。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "He",
+          "start": 278.56,
+          "end": 279.3
+        },
+        {
+          "word": "buttoned",
+          "start": 279.304,
+          "end": 279.68
+        },
+        {
+          "word": "his",
+          "start": 279.684,
+          "end": 279.8
+        },
+        {
+          "word": "coat,",
+          "start": 279.804,
+          "end": 280.02
+        },
+        {
+          "word": "put",
+          "start": 280.78,
+          "end": 280.92
+        },
+        {
+          "word": "the",
+          "start": 280.924,
+          "end": 281.1
+        },
+        {
+          "word": "little",
+          "start": 281.104,
+          "end": 281.22
+        },
+        {
+          "word": "dog",
+          "start": 281.224,
+          "end": 281.56
+        },
+        {
+          "word": "under",
+          "start": 281.564,
+          "end": 281.96
+        },
+        {
+          "word": "his",
+          "start": 281.964,
+          "end": 282.14
+        },
+        {
+          "word": "arm,",
+          "start": 282.144,
+          "end": 282.36
+        },
+        {
+          "word": "and",
+          "start": 283.04,
+          "end": 283.26
+        },
+        {
+          "word": "walked",
+          "start": 283.264,
+          "end": 283.46
+        },
+        {
+          "word": "away.",
+          "start": 283.464,
+          "end": 283.84
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "sceneId": "scene10",
+      "startSec": 288.12,
+      "endSec": 291.7,
+      "text": "The carpenter stood alone in the square with his bleeding finger.",
+      "textCn": "木匠独自站在广场上，手指还在流血。",
+      "speaker": "narrator",
+      "words": [
+        {
+          "word": "The",
+          "start": 288.12,
+          "end": 288.72
+        },
+        {
+          "word": "carpenter",
+          "start": 288.724,
+          "end": 289.04
+        },
+        {
+          "word": "stood",
+          "start": 289.044,
+          "end": 289.42
+        },
+        {
+          "word": "alone",
+          "start": 289.424,
+          "end": 289.74
+        },
+        {
+          "word": "in",
+          "start": 289.744,
+          "end": 289.94
+        },
+        {
+          "word": "the",
+          "start": 289.944,
+          "end": 290.04
+        },
+        {
+          "word": "square",
+          "start": 290.044,
+          "end": 290.34
+        },
+        {
+          "word": "with",
+          "start": 290.344,
+          "end": 290.82
+        },
+        {
+          "word": "his",
+          "start": 290.92,
+          "end": 290.97
+        },
+        {
+          "word": "bleeding",
+          "start": 290.974,
+          "end": 291.24
+        },
+        {
+          "word": "finger.",
+          "start": 291.244,
+          "end": 291.7
+        }
+      ]
+    }
+  ],
+  "glossaryCard": [
+    {
+      "phrase": "break the silence",
+      "phonetic": "/breɪk ðə ˈsaɪləns/",
+      "tag": "NATIVE CHUNK",
+      "meaning": "打破沉默",
+      "example": "Then a sharp cry broke the silence."
+    },
+    {
+      "phrase": "puff out one's chest",
+      "phonetic": "/pʌf aʊt wʌnz tʃest/",
+      "tag": "NATIVE CHUNK",
+      "meaning": "挺起胸膛；自鸣得意",
+      "example": "Officer Leo puffed out his chest."
+    },
+    {
+      "phrase": "drain from one's face",
+      "phonetic": "/dreɪn frəm wʌnz feɪs/",
+      "tag": "NATIVE CHUNK",
+      "meaning": "（血色）从脸上褪去",
+      "example": "The colour drained from his face."
+    },
+    {
+      "phrase": "get rid of",
+      "phonetic": "/ɡet rɪd əv/",
+      "tag": "NATIVE CHUNK",
+      "meaning": "摆脱；除掉",
+      "example": "I will get rid of that dog."
+    },
+    {
+      "phrase": "watch one's step",
+      "phonetic": "/wɒtʃ wʌnz step/",
+      "tag": "NATIVE CHUNK",
+      "meaning": "小心谨慎；注意脚下",
+      "example": "Next time, watch your step."
+    }
+  ]
+}
