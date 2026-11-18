@@ -291,11 +291,15 @@ class FlowVideo(BaseTool):
         data: dict = {}
         for line in stdout.splitlines():
             try:
-                data = json.loads(line)
+                parsed = json.loads(line)
+                if isinstance(parsed, dict):
+                    data = parsed
             except json.JSONDecodeError:
                 continue
 
-        output_file: str | None = data.get("output") or data.get("path")
+        output_file: str | None = None
+        if isinstance(data, dict):
+            output_file = data.get("output") or data.get("path")
         if not output_file and not dry_run:
             # Fallback: newest mp4 in out_dir
             mp4s = sorted(out_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime)

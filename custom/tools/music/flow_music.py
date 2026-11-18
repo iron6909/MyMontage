@@ -314,15 +314,17 @@ class FlowMusic(BaseTool):
         data: dict = {}
         for line in stdout.splitlines():
             try:
-                data = json.loads(line)
+                parsed = json.loads(line)
+                if isinstance(parsed, dict):
+                    data = parsed
             except json.JSONDecodeError:
                 continue
 
         # Collect outputs
         outputs: list[str] = []
-        if isinstance(data.get("outputs"), list):
+        if isinstance(data, dict) and isinstance(data.get("outputs"), list):
             outputs = [str(p) for p in data["outputs"]]
-        elif data.get("output"):
+        elif isinstance(data, dict) and data.get("output"):
             outputs = [str(data["output"])]
         else:
             # Fallback glob

@@ -135,11 +135,7 @@ class FlowImage(BaseTool):
             "dry_run": {
                 "type": "boolean",
                 "default": False,
-                "description": "Show credit cost without submitting.",
-            },
-            "max_credits": {
-                "type": "number",
-                "description": "Refuse if estimated cost exceeds this many credits.",
+                "description": "Preflight check (sw image has no remote pricing call; validates inputs only).",
             },
             "profile": {
                 "type": "string",
@@ -203,9 +199,25 @@ class FlowImage(BaseTool):
         count = inputs.get("count", 1)
         size = inputs.get("size", "2K")
         dry_run = inputs.get("dry_run", False)
-        max_credits = inputs.get("max_credits")
         profile = inputs.get("profile")
         ref_paths: list[str] = inputs.get("ref_paths") or []
+
+        # sw image does not support remote dry-run pricing; handle client-side
+        if dry_run:
+            return ToolResult(
+                success=True,
+                data={
+                    "provider": "google_flow",
+                    "model": model,
+                    "prompt": prompt,
+                    "aspect_ratio": aspect,
+                    "dry_run": True,
+                    "message": "Preflight check passed.",
+                },
+                cost_usd=None,
+                duration_seconds=0.0,
+                model=model,
+            )
 
         out_dir = Path(inputs.get("output_path") or "out/flow_image")
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -224,10 +236,6 @@ class FlowImage(BaseTool):
         ]
         for ref in ref_paths:
             cmd += ["--ref", ref]
-        if dry_run:
-            cmd.append("--dry-run")
-        if max_credits is not None:
-            cmd += ["--max-credits", str(max_credits)]
 
         start = time.time()
         try:
@@ -258,22 +266,20 @@ class FlowImage(BaseTool):
             )
 
         # Parse JSON output from sw --json
-        try:
-            data = json.loads(stdout)
-        except json.JSONDecodeError:
-            # sw may print multiple lines; take last valid JSON object
-            data = {}
-            for line in stdout.splitlines():
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+        data: dict = {}
+        for line in stdout.splitlines():
+            try:
+                parsed = json.loads(line)
+                if isinstance(parsed, dict):
+                    data = parsed
+            except json.JSONDecodeError:
+                continue
 
         # Collect output file paths
         outputs: list[str] = []
-        if isinstance(data.get("outputs"), list):
+        if isinstance(data, dict) and isinstance(data.get("outputs"), list):
             outputs = [str(p) for p in data["outputs"]]
-        elif data.get("output"):
+        elif isinstance(data, dict) and data.get("output"):
             outputs = [str(data["output"])]
         else:
             # Fallback: glob newly created files in out_dir
@@ -281,7 +287,7 @@ class FlowImage(BaseTool):
             outputs += sorted(str(p) for p in out_dir.glob("*.jpg"))
             outputs += sorted(str(p) for p in out_dir.glob("*.webp"))
 
-        if not outputs and not dry_run:
+        if not outputs:
             return ToolResult(
                 success=False,
                 error=f"flow_image returned no output files. stdout={stdout!r}",
@@ -298,12 +304,12 @@ class FlowImage(BaseTool):
                 "output": outputs[0] if outputs else None,
                 "outputs": outputs,
                 "images_generated": len(outputs),
-                "dry_run": dry_run,
+                "dry_run": False,
                 "sw_data": data,
-                "cost_status": "flow_credits",  # not USD
+                "cost_status": "flow_credits",
             },
             artifacts=outputs,
-            cost_usd=None,  # credits not USD
+            cost_usd=None,
             duration_seconds=duration,
             model=model,
         )
