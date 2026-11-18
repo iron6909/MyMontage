@@ -155,6 +155,10 @@ git ls-files -v tools/audio/piper_tts.py   # 'S' prefix = skip-worktree set
 edit — if upstream touches the same `--speaker` block, the merge still has to be
 resolved by hand. Do not assume `--no-skip-worktree` alone is enough.
 
+This is the one deliberate qualification to `custom/AGENTS.md` §2.1: the charter
+mandates the patch-plus-`skip-worktree` route, and this section records what it
+does **not** buy you (a conflict-free pull).
+
 Before syncing:
 
 ```bash
