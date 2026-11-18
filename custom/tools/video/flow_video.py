@@ -12,13 +12,13 @@ Prerequisites
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import time
 from pathlib import Path
 from typing import Any
 
+from custom.tools._sw import output_files, parse_sw_json, recover_download
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -252,8 +252,10 @@ class FlowVideo(BaseTool):
             cmd += ["--start", start_frame]
         if end_frame:
             cmd += ["--end", end_frame]
-        for ref in ref_paths:
-            cmd += ["--ref", ref]
+        if ref_paths:
+            cmd += ["--mode", "ingredients"]
+            for ref in ref_paths:
+                cmd += ["--ref", ref]
         if dry_run:
             cmd.append("--dry-run")
         if max_credits is not None:
@@ -283,27 +285,39 @@ class FlowVideo(BaseTool):
         stderr = result.stderr.strip()
 
         if result.returncode != 0:
+            # The clip is already generated; only sw's inline download failed.
+            files = [] if dry_run else recover_download(sw, "video", start, out_dir, size, profile)
+            if files:
+                return ToolResult(
+                    success=True,
+                    data={
+                        "provider": "google_flow",
+                        "model": model,
+                        "prompt": prompt,
+                        "duration_seconds": duration,
+                        "aspect_ratio": aspect,
+                        "resolution": resolution,
+                        "output": files[0],
+                        "dry_run": False,
+                        "recovered": True,
+                        "cost_status": "flow_credits",
+                    },
+                    artifacts=files,
+                    cost_usd=None,
+                    duration_seconds=round(time.time() - start, 2),
+                    model=model,
+                )
             return ToolResult(
                 success=False,
                 error=f"sw video exited {result.returncode}: {stderr or stdout}",
             )
 
-        data: dict = {}
-        for line in stdout.splitlines():
-            try:
-                parsed = json.loads(line)
-                if isinstance(parsed, dict):
-                    data = parsed
-            except json.JSONDecodeError:
-                continue
+        data = parse_sw_json(stdout)
 
         output_file: str | None = None
-        if isinstance(data, dict):
-            output_file = data.get("output") or data.get("path")
-        if not output_file and not dry_run:
-            # Fallback: newest mp4 in out_dir
-            mp4s = sorted(out_dir.glob("*.mp4"), key=lambda p: p.stat().st_mtime)
-            output_file = str(mp4s[-1]) if mp4s else None
+        if not dry_run:
+            mp4s = output_files(data, out_dir, ("*.mp4",))
+            output_file = mp4s[0] if mp4s else None
 
         if not output_file and not dry_run:
             return ToolResult(

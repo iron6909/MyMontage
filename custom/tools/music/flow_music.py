@@ -12,13 +12,13 @@ Prerequisites
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import time
 from pathlib import Path
 from typing import Any
 
+from custom.tools._sw import output_files, parse_sw_json
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -269,6 +269,9 @@ class FlowMusic(BaseTool):
         else:
             cmd += ["music", prompt]
 
+        if action == "stems":
+            cmd += ["--format", fmt]
+
         if action == "create":
             cmd += ["--model", model, "--length", length, "--format", fmt]
             if lyrics:
@@ -311,25 +314,8 @@ class FlowMusic(BaseTool):
                 error=f"sw music exited {result.returncode}: {stderr or stdout}",
             )
 
-        data: dict = {}
-        for line in stdout.splitlines():
-            try:
-                parsed = json.loads(line)
-                if isinstance(parsed, dict):
-                    data = parsed
-            except json.JSONDecodeError:
-                continue
-
-        # Collect outputs
-        outputs: list[str] = []
-        if isinstance(data, dict) and isinstance(data.get("outputs"), list):
-            outputs = [str(p) for p in data["outputs"]]
-        elif isinstance(data, dict) and data.get("output"):
-            outputs = [str(data["output"])]
-        else:
-            # Fallback glob
-            for ext in ("*.mp3", "*.wav", "*.m4a"):
-                outputs += sorted(str(p) for p in out_dir.glob(ext))
+        data = parse_sw_json(stdout)
+        outputs = output_files(data, out_dir, ("*.mp3", "*.wav", "*.m4a"))
 
         if not outputs:
             return ToolResult(

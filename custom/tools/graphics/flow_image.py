@@ -12,14 +12,13 @@ Prerequisites
 
 from __future__ import annotations
 
-import json
-import os
 import shutil
 import subprocess
 import time
 from pathlib import Path
 from typing import Any
 
+from custom.tools._sw import output_files, parse_sw_json, recover_download
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -260,32 +259,35 @@ class FlowImage(BaseTool):
         stderr = result.stderr.strip()
 
         if result.returncode != 0:
+            # The medium is already generated; only sw's inline download failed.
+            files = recover_download(sw, "image", start, out_dir, size, profile)
+            if files:
+                return ToolResult(
+                    success=True,
+                    data={
+                        "provider": "google_flow",
+                        "model": model,
+                        "prompt": prompt,
+                        "aspect_ratio": aspect,
+                        "output": files[0],
+                        "outputs": files,
+                        "images_generated": len(files),
+                        "dry_run": False,
+                        "recovered": True,
+                        "cost_status": "flow_credits",
+                    },
+                    artifacts=files,
+                    cost_usd=None,
+                    duration_seconds=round(time.time() - start, 2),
+                    model=model,
+                )
             return ToolResult(
                 success=False,
                 error=f"sw image exited {result.returncode}: {stderr or stdout}",
             )
 
-        # Parse JSON output from sw --json
-        data: dict = {}
-        for line in stdout.splitlines():
-            try:
-                parsed = json.loads(line)
-                if isinstance(parsed, dict):
-                    data = parsed
-            except json.JSONDecodeError:
-                continue
-
-        # Collect output file paths
-        outputs: list[str] = []
-        if isinstance(data, dict) and isinstance(data.get("outputs"), list):
-            outputs = [str(p) for p in data["outputs"]]
-        elif isinstance(data, dict) and data.get("output"):
-            outputs = [str(data["output"])]
-        else:
-            # Fallback: glob newly created files in out_dir
-            outputs = sorted(str(p) for p in out_dir.glob("*.png"))
-            outputs += sorted(str(p) for p in out_dir.glob("*.jpg"))
-            outputs += sorted(str(p) for p in out_dir.glob("*.webp"))
+        data = parse_sw_json(stdout)
+        outputs = output_files(data, out_dir, ("*.jpg", "*.png", "*.webp"))
 
         if not outputs:
             return ToolResult(
