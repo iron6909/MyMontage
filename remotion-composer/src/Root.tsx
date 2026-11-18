@@ -16,10 +16,6 @@ import { ProductReveal, ProductRevealProps } from "./components/ProductReveal";
 import { CaptionOverlay, WordCaption } from "./components/CaptionOverlay";
 import { CollageBurst, CollageBurstProps } from "./CollageBurst";
 import { LyricOverlay, LyricOverlayProps, calculateLyricOverlayMetadata } from "./LyricOverlay";
-// Custom plugin: NY English Shorts (additive only, no stock template touched).
-import {NewYorkerEnglishShort} from "./newyorker/NewYorkerEnglishShort";
-import type {Episode as NewYorkerEpisode} from "./newyorker/episode";
-import nyEp01 from "./newyorker/episode.ep01.json";
 
 // ---------------------------------------------------------------------------
 // Theme System — prevents every video from looking like dark fintech
@@ -123,18 +119,6 @@ export function resolveTheme(props: Record<string, unknown>): ThemeConfig {
   }
   return DEFAULT_THEME;
 }
-
-// Custom plugin metadata: duration from the episode's own audio length.
-const calculateNYMetadata: CalculateMetadataFunction<{
-  episode: NewYorkerEpisode;
-}> = async ({props}) => {
-  const ep = props.episode ?? ({} as NewYorkerEpisode);
-  const total =
-    (ep.hookDurationSec ?? 0) +
-    (ep.audioDurationSec ?? 292.36) +
-    (ep.endingCardDurationSec ?? 3.5);
-  return {durationInFrames: Math.max(1, Math.ceil(total * 30))};
-};
 
 const calculateMetadata: CalculateMetadataFunction<ExplainerProps> = async ({
   props,
@@ -347,16 +331,6 @@ export const Root: React.FC = () => {
           fadeOutSeconds: 1.5,
           overlay: true,
         } as EndTagProps}
-      />
-      <Composition
-        id="NewYorkerEnglishShort"
-        component={NewYorkerEnglishShort}
-        durationInFrames={8876}
-        fps={30}
-        width={1080}
-        height={1920}
-        defaultProps={{episode: nyEp01 as unknown as NewYorkerEpisode}}
-        calculateMetadata={calculateNYMetadata}
       />
     </>
   );
