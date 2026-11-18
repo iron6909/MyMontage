@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # Local-only OpenMontage setup: in-repo venv, requirements.txt (no GPU extras),
-# a free offline TTS voice, and a working FFmpeg. No API keys, no paid providers.
-# Safe to re-run: every step checks before it acts.
+# a free offline TTS voice, a working FFmpeg, and the local Piper speaker patch.
+# No API keys, no paid providers. Safe to re-run: every step checks before it acts.
+#
+# Run from the repository root:
+#   bash custom/scripts/setup_local.sh      # or: make -f custom/Makefile local-setup
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# This script lives in custom/scripts/, so the repository root is TWO levels up.
+# One level up is custom/ — using it would create custom/.venv, install nothing
+# the tools need, and put import paths outside the repo.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT_DIR"
 VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv}"
 VENV_PY="$VENV_DIR/bin/python"
 PIPER_VOICE="${LOCAL_PIPER_VOICE:-zh_CN-huayan-medium}"
@@ -19,6 +26,68 @@ PYTHON_MIN="3.10"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+# ---- 0. Local Piper speaker patch ----------------------------------------
+# Upstream tools/audio/piper_tts.py always passes `--speaker <id>`, which makes
+# piper emit an `sid` tensor that single-speaker voices (e.g.
+# zh_CN-huayan-medium) reject with "Invalid input name: sid". The fix lives in
+# custom/patches/ and is mounted into the tracked file, then hidden from
+# `git status` with skip-worktree.
+#
+# skip-worktree only hides the local edit from git — it does NOT guarantee a
+# conflict-free pull when upstream touches the same lines. See the "Keeping the
+# Piper patch in sync" section of custom/docs/LOCAL_DEPLOY.md.
+PIPER_FILE="tools/audio/piper_tts.py"
+PIPER_PATCH="custom/patches/piper_tts_speaker.patch"
+PIPER_PATCHED="custom/tools/audio/piper_tts.py"
+# Pristine upstream blob the patch was generated against (2e003e6 / ce284cf~1).
+PIPER_BASE_BLOB="41595955859179707af64b5d2a7694dc6aa5f72b"
+
+piper_ensure_skip_worktree() {
+  git ls-files -v -- "$PIPER_FILE" | grep -q '^S' \
+    || git update-index --skip-worktree -- "$PIPER_FILE"
+}
+
+mount_piper_patch() {
+  git rev-parse --git-dir >/dev/null 2>&1 || die "Not a git worktree: $ROOT_DIR"
+  [ -f "$PIPER_FILE" ] || die "Missing $PIPER_FILE in $ROOT_DIR."
+  [ -f "$PIPER_PATCH" ] && [ -f "$PIPER_PATCHED" ] \
+    || die "Missing $PIPER_PATCH or $PIPER_PATCHED."
+
+  if cmp -s "$PIPER_FILE" "$PIPER_PATCHED"; then
+    log "Piper speaker patch already applied; ensuring skip-worktree"
+    piper_ensure_skip_worktree
+    return 0
+  fi
+
+  head_blob="$(git rev-parse "HEAD:$PIPER_FILE")" \
+    || die "Cannot read HEAD:$PIPER_FILE — is this a full checkout?"
+  if [ "$head_blob" != "$PIPER_BASE_BLOB" ]; then
+    die "refusing to patch $PIPER_FILE: HEAD already carries a different version
+     (blob $head_blob, expected upstream $PIPER_BASE_BLOB), so upstream probably
+     changed it. Do not force the patch. Rebase/merge, then either re-mount the
+     patch by hand or (if upstream fixed the speaker bug itself) drop it."
+  fi
+  if ! git show "HEAD:$PIPER_FILE" | cmp -s - "$PIPER_FILE"; then
+    die "refusing to patch $PIPER_FILE: the working copy is neither the upstream
+     original nor the patched copy — it has other local edits.
+     Restore it first, then re-run:
+       git update-index --no-skip-worktree -- $PIPER_FILE
+       git checkout HEAD -- $PIPER_FILE
+       bash custom/scripts/setup_local.sh"
+  fi
+
+  log "Applying $PIPER_PATCH (local only, never committed)"
+  git apply "$PIPER_PATCH" \
+    || die "$PIPER_PATCH did not apply. Upstream changed this file; resolve it by
+     hand against $PIPER_PATCHED instead of forcing the patch."
+  cmp -s "$PIPER_FILE" "$PIPER_PATCHED" \
+    || die "$PIPER_FILE does not match $PIPER_PATCHED after applying the patch."
+  piper_ensure_skip_worktree
+  log "  $PIPER_FILE patched; skip-worktree set so git treats it as unmodified"
+}
+
+mount_piper_patch
 
 # pip_install <args...>: try the user's configured index, then a fallback index.
 # Mirrors do go down (a stale pip.conf can point at a dead host), and that must
@@ -135,4 +204,4 @@ for cap in summary.get("capabilities", []):
 PY
 
 log "Local setup complete."
-log "Render the sample: .venv/bin/python scripts/render_local_sample.py   (= make sample)"
+log "Render the sample: .venv/bin/python custom/scripts/render_local_sample.py   (= make -f custom/Makefile sample)"

@@ -4,7 +4,8 @@ Local TTS comes from the registered `piper_tts` tool; the cards are drawn
 locally with Pillow; the cut is assembled by the system FFmpeg. No network,
 no API key, no paid provider takes part.
 
-    .venv/bin/python scripts/render_local_sample.py      # or: make sample
+    .venv/bin/python custom/scripts/render_local_sample.py
+    # or: make -f custom/Makefile sample   (from the repository root)
 """
 
 from __future__ import annotations
@@ -17,9 +18,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-# Run as `scripts/render_local_sample.py`, sys.path[0] is scripts/, so the repo
-# root has to be added before `tools.*` can be imported.
+# custom/scripts/ -> up three levels: scripts -> custom -> repo root.
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+# Run as `custom/scripts/render_local_sample.py`, sys.path[0] is custom/scripts/,
+# so the repo root has to be added before `tools.*` can be imported.
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
@@ -61,7 +63,7 @@ SCENES = [
         "kicker": "LOCAL SAMPLE · 03",
         "title": "下一步换你的文案",
         "lines": [
-            "修改 scripts/render_local_sample.py 里的 SCENES，",
+            "修改 custom/scripts/render_local_sample.py 里的 SCENES，",
             "就能把这段示例换成你自己的内容。",
         ],
         "text": "修改 render local sample 脚本里的场景列表，就能把这段示例换成你自己的内容。",
@@ -143,7 +145,8 @@ def resolve_voice(voice: str) -> str:
         if candidate.is_file():
             return str(candidate)
     raise SystemExit(
-        f"ERROR: voice {voice!r} not found in ~/.piper/models. Run scripts/setup_local.sh first."
+        f"ERROR: voice {voice!r} not found in ~/.piper/models. "
+        "Run custom/scripts/setup_local.sh first."
     )
 
 
@@ -154,7 +157,9 @@ def synthesise(text: str, voice: str, path: Path) -> None:
     registry.ensure_discovered()
     tool = registry.get("piper_tts")
     if tool is None:
-        raise SystemExit("ERROR: piper_tts is not registered. Run scripts/setup_local.sh first.")
+        raise SystemExit(
+            "ERROR: piper_tts is not registered. Run custom/scripts/setup_local.sh first."
+        )
     result = tool.execute({"text": text, "model": resolve_voice(voice), "output_path": str(path)})
     if not result.success:
         raise SystemExit(f"ERROR: local TTS failed: {result.error}")

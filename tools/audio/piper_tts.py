@@ -138,17 +138,12 @@ class PiperTTS(BaseTool):
         output_path = Path(inputs.get("output_path", "tts_output.wav"))
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Single-speaker voices have no `sid` ONNX input; an explicit --speaker
-        # makes piper send one and fail. Piper already defaults to speaker 0.
-        speaker_id = int(inputs.get("speaker_id") or 0)
-        speaker_args = ["--speaker", str(speaker_id)] if speaker_id else []
-
         proc = subprocess.run(
             [
                 "piper",
                 "--model", inputs.get("model", "en_US-lessac-medium"),
                 "--data-dir", str(self._voice_data_dir()),
-                *speaker_args,
+                "--speaker", str(inputs.get("speaker_id", 0)),
                 "--length-scale", str(inputs.get("length_scale", 1.0)),
                 "--sentence-silence", str(inputs.get("sentence_silence", 0.3)),
                 "--output_file", str(output_path),
@@ -173,7 +168,7 @@ class PiperTTS(BaseTool):
             data={
                 "provider": self.provider,
                 "model": inputs.get("model", "en_US-lessac-medium"),
-                "speaker_id": speaker_id,
+                "speaker_id": inputs.get("speaker_id", 0),
                 "text_length": len(inputs["text"]),
                 "output": str(output_path),
                 "format": "wav",

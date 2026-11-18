@@ -22,7 +22,6 @@ htmlcov/
 
 # Pipeline outputs (regenerable — never commit large media)
 output/
-out/
 pipeline/
 tests/qa/output/
 
