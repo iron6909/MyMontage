@@ -14,7 +14,8 @@ ROOT_GUARD := @[ "$$(pwd -P)" = "$(REPO_ROOT)" ] || { echo "ERROR: run this from
 
 .DEFAULT_GOAL := help
 .PHONY: help local-setup sample \
-        sw-install sw-auth-flow sw-auth-music sw-hide sw-doctor sw-status sw-tools
+        sw-install sw-auth-flow sw-auth-music sw-hide sw-doctor sw-status sw-tools \
+        flow flow-help sw-credentials
 
 help:
 	@echo "custom/ - local-only deploy (no GPU, no API keys)"
@@ -29,6 +30,12 @@ help:
 	@echo "  make -f custom/Makefile sw-doctor        # check Flow page hooks (spends nothing)"
 	@echo "  make -f custom/Makefile sw-status        # show pacing + recent jobs"
 	@echo "  make -f custom/Makefile sw-tools         # verify flow_image/video/music are registered"
+	@echo "  make -f custom/Makefile sw-credentials   # credential presence only (bool + path)"
+	@echo ""
+	@echo "Google Flow tools (run from the repo root; docs: custom/docs/FLOW.md):"
+	@echo "  make -f custom/Makefile flow-help        # --help for image, video and music"
+	@echo "  make -f custom/Makefile flow ARGS=\"image --prompt 'a red fox' --dry-run\""
+	@echo "  make -f custom/Makefile flow ARGS=\"video --prompt 'drone shot' --plan\""
 
 # .venv + requirements.txt + Piper voice + working FFmpeg + local Piper patch.
 # Idempotent: every step checks before acting.
@@ -93,3 +100,23 @@ print('Custom tools registered:', names); \
 assert 'flow_image' in names and 'flow_video' in names and 'flow_music' in names, \
     'Missing tools — check custom/tools/'; \
 print('OK')"
+
+# Credential presence only — booleans and paths, never cookie/token values.
+sw-credentials:
+	$(ROOT_GUARD)
+	@python3 "$(SCRIPTS)/sw_credentials.py"
+
+# ── Google Flow tools (custom/plugins/studiowright) ────────────────────────
+# One launcher for all three tools; it resolves the interpreter and the repo
+# root itself. `--plan` prints the sw argv and runs nothing; `--dry-run`
+# submits nothing. Neither spends Flow credits.
+flow:
+	$(ROOT_GUARD)
+	@bash "$(SCRIPTS)/flow_cli.sh" $(ARGS)
+
+flow-help:
+	$(ROOT_GUARD)
+	@bash "$(SCRIPTS)/flow_cli.sh" --help
+	@bash "$(SCRIPTS)/flow_cli.sh" image --help
+	@bash "$(SCRIPTS)/flow_cli.sh" video --help
+	@bash "$(SCRIPTS)/flow_cli.sh" music --help
