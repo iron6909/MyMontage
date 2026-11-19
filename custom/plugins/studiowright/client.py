@@ -1,8 +1,9 @@
-"""StudioWright (`sw`) CLI output handling, shared by the custom flow tools.
+"""StudioWright (`sw`) CLI output handling, shared by the Flow tools.
 
 `sw ... --json` prints ONE object via `json.dumps(..., indent=1)` (see
-studiowright/cli.py `_emit`), so a line-by-line `json.loads` never parses it.
-The result object carries the downloaded paths under `files`.
+studiowright/cli.py `_emit` in 0.2.13), so a line-by-line `json.loads` never
+parses it. Every result carries the downloaded paths under `files`:
+`sw image`, `sw video`, `sw music <action>`, `sw download`.
 """
 
 from __future__ import annotations
@@ -46,7 +47,8 @@ def output_files(data: dict, out_dir: Path, patterns: tuple[str, ...]) -> list[s
     return found
 
 
-def _run_json(cmd: list[str], timeout_s: float = 300) -> dict:
+def run_json(cmd: list[str], timeout_s: float = 300) -> dict:
+    """Run one `sw ... --json` call and return its object, or {} on any failure."""
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
@@ -70,9 +72,11 @@ def recover_download(
     ``sw image`` sometimes cannot enable the edit view's download button right
     after generating; the medium is already in the Flow project, so listing it
     and downloading it by id delivers the same file without another credit.
+
+    `kind` is the value `sw media list` reports: "image", "video" or "upload".
     """
     base = [sw] + (["--profile", profile] if profile else [])
-    listing = _run_json(base + ["media", "list", "--limit", "10", "--json"])
+    listing = run_json(base + ["media", "list", "--limit", "10", "--json"])
     ids = [
         str(m.get("media_id"))
         for m in listing.get("media") or []
@@ -80,7 +84,7 @@ def recover_download(
     ]
     if not ids:
         return []
-    data = _run_json(
+    data = run_json(
         base + ["download", ids[0], "--out", str(out_dir), "--size", size, "--json"]
     )
     return [str(p) for p in (data.get("files") or [])]

@@ -196,6 +196,14 @@ ffprobe -v error -show_streams -show_format -of json out/sample.mp4
 Expect one `video` stream (1280×720, h264) and one `audio` stream (aac), with
 `format.duration` > 0.
 
+## Google Flow (StudioWright)
+
+Google Flow image / video / music generation is a separate, key-free path via the
+`sw` CLI: see [FLOW.md](FLOW.md) for the entry points
+(`python3 -m custom.plugins.studiowright ...`), the verified `sw` 0.2.13 contract,
+and the credential-presence check (`make -f custom/Makefile sw-credentials`).
+It needs a signed-in Chrome; nothing on this page changes because of it.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -208,6 +216,7 @@ Expect one `video` stream (1280×720, h264) and one `audio` stream (aac), with
 | `Invalid input name: sid` | `--speaker` passed to a single-speaker voice | The patch is not mounted. Run `make -f custom/Makefile local-setup`. |
 | Piper downloads a 63 MB `.onnx` into the repo root | `--model` was a bare voice name; piper treats it as "download here" | Already handled: the sample script passes the absolute path to `~/.piper/models/<voice>.onnx`. |
 | `ModuleNotFoundError: No module named 'tools'` | Script run without the repo root on `sys.path` | Already handled in `render_local_sample.py` (it walks up to the root from `custom/scripts/`). Use `make -f custom/Makefile sample`. |
+| `ModuleNotFoundError: No module named 'custom'` from a Flow tool | The tool module was run by file path, so `sys.path` holds `custom/tools/...` and not the repo root | Run the documented entry instead: `python3 -m custom.plugins.studiowright <image\|video\|music> --help`, or `bash custom/scripts/flow_cli.sh`. See [FLOW.md](FLOW.md). |
 | `ERROR: .../.venv/bin/python is missing` | No venv for this checkout | `make -f custom/Makefile local-setup` |
 | `Piper voice download failed` | Voice name typo or no network | `LOCAL_PIPER_VOICE=en_US-lessac-medium bash custom/scripts/setup_local.sh` |
 | TTS returns silence / empty WAV | Voice model and text language mismatch | Use a matching voice, e.g. `en_US-lessac-medium` with English copy |

@@ -8,6 +8,9 @@ Prerequisites
 1. Install StudioWright:   uv tool install git+https://github.com/umutkocak/studiowright
 2. Authenticate once:      sw auth login --url https://www.flowmusic.app/
 3. Keep Chrome running:    sw window hide  (never minimize)
+
+Entry point (from the repository root):
+    python3 -m custom.plugins.studiowright music --help
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from custom.tools._sw import output_files, parse_sw_json
+from custom.plugins.studiowright.client import output_files, parse_sw_json
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -32,9 +35,21 @@ from tools.base_tool import (
     ToolTier,
 )
 
+# `sw music <action>`: create takes the sound prompt, the rest edit a song.
+_EDIT_ACTIONS = ("extend", "cover", "variation", "trim", "replace")
+_NEEDS_PROMPT = ("create", "cover")
+_NEEDS_RANGE = ("trim", "replace")
+# Only these actions take --lyrics / --lyrics-file / --title (stems, variation
+# and trim do not; an unknown flag is a click UsageError).
+_TEXT_FLAGS = ("create", "extend", "cover", "replace")
+
 
 def _sw_binary() -> str | None:
     return shutil.which("sw")
+
+
+def _out_dir(inputs: dict[str, Any]) -> Path:
+    return Path(inputs.get("output_path") or "out/flow_music")
 
 
 def _mm_ss_to_seconds(ts: str) -> int:
@@ -43,6 +58,29 @@ def _mm_ss_to_seconds(ts: str) -> int:
     if len(parts) == 2:
         return int(parts[0]) * 60 + int(parts[1])
     return int(ts)
+
+
+def _edit_flags(action: str, inputs: dict[str, Any]) -> list[str]:
+    """The flags one `sw music <edit>` subcommand accepts, in click's order."""
+    if action in _NEEDS_PROMPT:
+        return ["--prompt", inputs["prompt"]]
+    if action in _NEEDS_RANGE:
+        flags = ["--start", inputs["start"], "--end", inputs["end"]]
+        return flags + (["--prompt", inputs["prompt"]] if inputs.get("prompt") else [])
+    return ["--prompt", inputs["prompt"]] if inputs.get("prompt") else []
+
+
+def _text_flags(action: str, inputs: dict[str, Any]) -> list[str]:
+    """--lyrics / --lyrics-file / --title / --bpm where sw accepts them."""
+    if action not in _TEXT_FLAGS:
+        return []
+    flags: list[str] = []
+    for flag, key in (("--lyrics", "lyrics"), ("--lyrics-file", "lyrics_file"), ("--title", "title")):
+        if inputs.get(key):
+            flags += [flag, inputs[key]]
+    if action == "create" and inputs.get("bpm"):
+        flags += ["--bpm", str(int(inputs["bpm"]))]
+    return flags
 
 
 class FlowMusic(BaseTool):
@@ -89,6 +127,7 @@ class FlowMusic(BaseTool):
         "cover": True,
         "variation": True,
         "trim": True,
+        "dry_run": True,
         "no_api_key": True,
         "wav_output": True,
         "mp3_output": True,
@@ -109,11 +148,14 @@ class FlowMusic(BaseTool):
 
     input_schema = {
         "type": "object",
-        "required": ["prompt"],
+        "required": ["action"],
         "properties": {
             "prompt": {
                 "type": "string",
-                "description": "Music style / mood description (e.g. 'moody indie folk, warm male vocal').",
+                "description": (
+                    "Music style / mood description (e.g. 'moody indie folk, warm male vocal'). "
+                    "Required for action=create and action=cover; unused by the other edits."
+                ),
             },
             "action": {
                 "type": "string",
@@ -154,6 +196,14 @@ class FlowMusic(BaseTool):
                 "type": "string",
                 "description": "Song title shown in Flow Music.",
             },
+            "start": {
+                "type": "string",
+                "description": "trim/replace: first second to keep or replace (M:SS).",
+            },
+            "end": {
+                "type": "string",
+                "description": "trim/replace: last second to keep or replace (M:SS).",
+            },
             "format": {
                 "type": "string",
                 "enum": ["mp3", "wav", "m4a"],
@@ -162,6 +212,15 @@ class FlowMusic(BaseTool):
             "output_path": {
                 "type": "string",
                 "description": "Directory where audio will be saved (default: out/flow_music).",
+            },
+            "timeout_seconds": {
+                "type": "number",
+                "description": "Abandon the sw call after this many seconds (default: 3x the estimate).",
+            },
+            "dry_run": {
+                "type": "boolean",
+                "default": False,
+                "description": "Preflight check, client-side: sw music has no remote pricing call.",
             },
             "profile": {
                 "type": "string",
@@ -220,7 +279,67 @@ class FlowMusic(BaseTool):
         # roughly: 30s overhead + length/4
         return 30.0 + secs / 4.0
 
+    def build_command(self, inputs: dict[str, Any]) -> list[str]:
+        """The exact `sw` argv for these inputs (used by --plan and by execute)."""
+        action = inputs.get("action", "create")
+        song = inputs.get("song_id") or "last"
+        if action == "create":
+            head = ["music", inputs["prompt"],
+                    "--model", inputs.get("model", "lyria-3.5"),
+                    "--length", inputs.get("length", "1:30")]
+        elif action == "stems":
+            head = ["music", "stems", song]
+        else:
+            head = ["music", action, song, *_edit_flags(action, inputs)]
+        cmd = [_sw_binary() or "sw"]
+        if inputs.get("profile"):
+            cmd += ["--profile", inputs["profile"]]
+        return cmd + head + [
+            "--format", inputs.get("format", "mp3"),
+            *_text_flags(action, inputs),
+            "--out", str(_out_dir(inputs)),
+            "--json",
+        ]
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
+        action = inputs.get("action", "create")
+        prompt = inputs.get("prompt")
+        song_id = inputs.get("song_id")
+        model = inputs.get("model", "lyria-3.5")
+        fmt = inputs.get("format", "mp3")
+
+        if action in _NEEDS_PROMPT and not prompt:
+            return ToolResult(success=False, error=f"action={action} needs a prompt.")
+        if action in _NEEDS_RANGE and not (inputs.get("start") and inputs.get("end")):
+            return ToolResult(
+                success=False,
+                error=f"action={action} needs both start and end (M:SS), e.g. --start 0:05 --end 0:35.",
+            )
+        if action != "create" and action not in _EDIT_ACTIONS and action != "stems":
+            return ToolResult(success=False, error=f"unknown action {action!r}.")
+
+        cmd = self.build_command(inputs)
+
+        # sw music has no remote dry-run pricing; handle client-side.
+        if inputs.get("dry_run"):
+            return ToolResult(
+                success=True,
+                data={
+                    "provider": "google_flow_music",
+                    "model": model,
+                    "prompt": prompt,
+                    "action": action,
+                    "song_id": song_id or ("last" if action != "create" else None),
+                    "format": fmt,
+                    "dry_run": True,
+                    "command": cmd,
+                    "message": "Preflight check passed.",
+                },
+                cost_usd=None,
+                duration_seconds=0.0,
+                model=model,
+            )
+
         sw = _sw_binary()
         if not sw:
             return ToolResult(
@@ -228,64 +347,12 @@ class FlowMusic(BaseTool):
                 error="StudioWright (sw) not found. " + self.install_instructions,
             )
 
-        prompt = inputs["prompt"]
-        action = inputs.get("action", "create")
-        song_id = inputs.get("song_id")
-        model = inputs.get("model", "lyria-3.5")
-        lyrics = inputs.get("lyrics")
-        lyrics_file = inputs.get("lyrics_file")
-        length = inputs.get("length", "1:30")
-        bpm = inputs.get("bpm")
-        title = inputs.get("title")
-        fmt = inputs.get("format", "mp3")
-        profile = inputs.get("profile")
-
-        out_dir = Path(inputs.get("output_path") or "out/flow_music")
+        out_dir = _out_dir(inputs)
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # Build command
-        cmd: list[str] = [sw]
-        if profile:
-            cmd += ["--profile", profile]
-
-        if action == "create":
-            cmd += ["music", prompt]
-        elif action == "stems":
-            cmd += ["music", "stems", song_id or "last"]
-        elif action == "extend":
-            cmd += ["music", "extend", song_id or "last"]
-            if prompt:
-                cmd += ["--prompt", prompt]
-        elif action == "cover":
-            cmd += ["music", "cover", song_id or "last", "--prompt", prompt]
-        elif action == "variation":
-            cmd += ["music", "variation", song_id or "last"]
-        elif action == "trim":
-            cmd += ["music", "trim", song_id or "last"]
-        elif action == "replace":
-            cmd += ["music", "replace", song_id or "last"]
-            if prompt:
-                cmd += ["--prompt", prompt]
-        else:
-            cmd += ["music", prompt]
-
-        if action == "stems":
-            cmd += ["--format", fmt]
-
-        if action == "create":
-            cmd += ["--model", model, "--length", length, "--format", fmt]
-            if lyrics:
-                cmd += ["--lyrics", lyrics]
-            if lyrics_file:
-                cmd += ["--lyrics-file", lyrics_file]
-            if bpm:
-                cmd += ["--bpm", str(bpm)]
-            if title:
-                cmd += ["--title", title]
-
-        cmd += ["--out", str(out_dir), "--json"]
-
-        timeout_s = max(180, int(self.estimate_runtime(inputs)) * 3)
+        timeout_s = float(
+            inputs.get("timeout_seconds") or max(180, int(self.estimate_runtime(inputs)) * 3)
+        )
         start = time.time()
         try:
             result = subprocess.run(
@@ -299,7 +366,7 @@ class FlowMusic(BaseTool):
         except subprocess.TimeoutExpired:
             return ToolResult(
                 success=False,
-                error=f"flow_music timed out after {timeout_s}s. "
+                error=f"flow_music timed out after {timeout_s:.0f}s. "
                       "Chrome may be minimized — use `sw window hide` instead.",
             )
         except Exception as exc:
@@ -331,12 +398,13 @@ class FlowMusic(BaseTool):
                 "model": model,
                 "prompt": prompt,
                 "action": action,
-                "length": length,
+                "length": inputs.get("length", "1:30"),
                 "format": fmt,
                 "output": outputs[0],
                 "outputs": outputs,
                 "sw_data": data,
                 "cost_status": "flow_credits",
+                "command": cmd,
             },
             artifacts=outputs,
             cost_usd=None,

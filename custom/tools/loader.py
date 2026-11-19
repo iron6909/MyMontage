@@ -11,12 +11,16 @@ Or add to your startup script:
 
 The script:
 1. Ensures `custom/` is on sys.path so `custom.tools.*` is importable.
-2. Calls registry.discover("custom.tools") — the same mechanism used for
-   the upstream `tools` package, requiring zero modifications to upstream code.
+2. Walks `custom.tools` and registers every concrete BaseTool — the same
+   `registry.register_module` the upstream `tools` package uses, requiring zero
+   modifications to upstream code. One module is skipped (`_SKIP`): the patched
+   Piper reference copy, which must not shadow the real provider.
 """
 
 from __future__ import annotations
 
+import importlib
+import pkgutil
 import sys
 from pathlib import Path
 
@@ -29,6 +33,12 @@ from tools.tool_registry import registry  # noqa: E402
 
 _CUSTOM_PKG = "custom.tools"
 
+# Imported by discovery but deliberately not registered: this is the patched
+# *reference copy* of the upstream Piper tool that custom/scripts/setup_local.sh
+# mounts onto tools/audio/piper_tts.py. Registering it would shadow the real
+# provider with a snapshot that can go stale.
+_SKIP = {"custom.tools.audio.piper_tts"}
+
 
 def load() -> list[str]:
     """Register all custom tools into the shared registry.
@@ -36,7 +46,12 @@ def load() -> list[str]:
     Returns the list of tool names that were registered.
     Safe to call multiple times — the registry deduplicates.
     """
-    registered = registry.discover(_CUSTOM_PKG)
+    package = importlib.import_module(_CUSTOM_PKG)
+    registered: list[str] = []
+    for info in pkgutil.walk_packages(package.__path__, f"{_CUSTOM_PKG}."):
+        if info.name in _SKIP:
+            continue
+        registered.extend(registry.register_module(importlib.import_module(info.name)))
     return registered
 
 

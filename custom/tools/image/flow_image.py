@@ -8,6 +8,9 @@ Prerequisites
 1. Install StudioWright:   uv tool install git+https://github.com/umutkocak/studiowright
 2. Authenticate once:      sw auth login
 3. Keep Chrome running:    sw window hide  (never minimize)
+
+Entry point (from the repository root):
+    python3 -m custom.plugins.studiowright image --help
 """
 
 from __future__ import annotations
@@ -18,7 +21,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-from custom.tools._sw import output_files, parse_sw_json, recover_download
+from custom.plugins.studiowright.client import (
+    output_files,
+    parse_sw_json,
+    recover_download,
+)
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -36,6 +43,10 @@ from tools.base_tool import (
 def _sw_binary() -> str | None:
     """Return absolute path to the ``sw`` binary, or None if not installed."""
     return shutil.which("sw")
+
+
+def _out_dir(inputs: dict[str, Any]) -> Path:
+    return Path(inputs.get("output_path") or "out/flow_image")
 
 
 class FlowImage(BaseTool):
@@ -75,6 +86,7 @@ class FlowImage(BaseTool):
         "multiple_reference_images": True,
         "aspect_ratio": True,
         "batch": True,
+        "dry_run": True,
         "no_api_key": True,
     }
     best_for = [
@@ -125,16 +137,20 @@ class FlowImage(BaseTool):
             "ref_paths": {
                 "type": "array",
                 "items": {"type": "string"},
-                "description": "Local file paths to use as reference images.",
+                "description": "Local file paths or Flow media ids to use as reference images.",
             },
             "output_path": {
                 "type": "string",
                 "description": "Directory where images will be saved (default: out/flow_image).",
             },
+            "timeout_seconds": {
+                "type": "number",
+                "description": "Abandon the sw call after this many seconds (default: 120 per image).",
+            },
             "dry_run": {
                 "type": "boolean",
                 "default": False,
-                "description": "Preflight check (sw image has no remote pricing call; validates inputs only).",
+                "description": "Preflight check, client-side: sw image has no remote pricing call.",
             },
             "profile": {
                 "type": "string",
@@ -184,25 +200,36 @@ class FlowImage(BaseTool):
     def estimate_runtime(self, inputs: dict[str, Any]) -> float:
         return 20.0 * inputs.get("count", 1)
 
-    def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        sw = _sw_binary()
-        if not sw:
-            return ToolResult(
-                success=False,
-                error="StudioWright (sw) not found. " + self.install_instructions,
-            )
+    def build_command(self, inputs: dict[str, Any]) -> list[str]:
+        """The exact `sw` argv for these inputs (used by --plan and by execute)."""
+        cmd = [_sw_binary() or "sw"]
+        if inputs.get("profile"):
+            cmd += ["--profile", inputs["profile"]]
+        cmd += [
+            "image", inputs["prompt"],
+            "--model", inputs.get("model", "nano-banana-2.1"),
+            "--aspect", inputs.get("aspect_ratio", "16:9"),
+            "--count", str(inputs.get("count", 1)),
+            "--size", inputs.get("size", "2K"),
+            "--out", str(_out_dir(inputs)),
+            "--json",
+        ]
+        for ref in inputs.get("ref_paths") or []:
+            cmd += ["--ref", ref]
+        return cmd
 
+    def execute(self, inputs: dict[str, Any]) -> ToolResult:
         prompt = inputs["prompt"]
         model = inputs.get("model", "nano-banana-2.1")
         aspect = inputs.get("aspect_ratio", "16:9")
         count = inputs.get("count", 1)
         size = inputs.get("size", "2K")
-        dry_run = inputs.get("dry_run", False)
         profile = inputs.get("profile")
-        ref_paths: list[str] = inputs.get("ref_paths") or []
+        timeout_s = float(inputs.get("timeout_seconds") or 120 * count)
+        cmd = self.build_command(inputs)
 
-        # sw image does not support remote dry-run pricing; handle client-side
-        if dry_run:
+        # sw image has no remote dry-run pricing; handle client-side.
+        if inputs.get("dry_run"):
             return ToolResult(
                 success=True,
                 data={
@@ -211,6 +238,7 @@ class FlowImage(BaseTool):
                     "prompt": prompt,
                     "aspect_ratio": aspect,
                     "dry_run": True,
+                    "command": cmd,
                     "message": "Preflight check passed.",
                 },
                 cost_usd=None,
@@ -218,23 +246,15 @@ class FlowImage(BaseTool):
                 model=model,
             )
 
-        out_dir = Path(inputs.get("output_path") or "out/flow_image")
-        out_dir.mkdir(parents=True, exist_ok=True)
+        sw = _sw_binary()
+        if not sw:
+            return ToolResult(
+                success=False,
+                error="StudioWright (sw) not found. " + self.install_instructions,
+            )
 
-        cmd: list[str] = [sw]
-        if profile:
-            cmd += ["--profile", profile]
-        cmd += [
-            "image", prompt,
-            "--model", model,
-            "--aspect", aspect,
-            "--count", str(count),
-            "--size", size,
-            "--out", str(out_dir),
-            "--json",
-        ]
-        for ref in ref_paths:
-            cmd += ["--ref", ref]
+        out_dir = _out_dir(inputs)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
         start = time.time()
         try:
@@ -244,12 +264,12 @@ class FlowImage(BaseTool):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=120 * count,
+                timeout=timeout_s,
             )
         except subprocess.TimeoutExpired:
             return ToolResult(
                 success=False,
-                error=f"flow_image timed out after {120 * count}s. "
+                error=f"flow_image timed out after {timeout_s:.0f}s. "
                       "Chrome may be minimized — use `sw window hide` instead.",
             )
         except Exception as exc:
@@ -275,6 +295,7 @@ class FlowImage(BaseTool):
                         "dry_run": False,
                         "recovered": True,
                         "cost_status": "flow_credits",
+                        "command": cmd,
                     },
                     artifacts=files,
                     cost_usd=None,
@@ -309,6 +330,7 @@ class FlowImage(BaseTool):
                 "dry_run": False,
                 "sw_data": data,
                 "cost_status": "flow_credits",
+                "command": cmd,
             },
             artifacts=outputs,
             cost_usd=None,

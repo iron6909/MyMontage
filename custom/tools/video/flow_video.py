@@ -18,7 +18,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-from custom.tools._sw import output_files, parse_sw_json, recover_download
+from custom.plugins.studiowright.client import (
+    output_files,
+    parse_sw_json,
+    recover_download,
+)
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -35,6 +39,10 @@ from tools.base_tool import (
 
 def _sw_binary() -> str | None:
     return shutil.which("sw")
+
+
+def _out_dir(inputs: dict[str, Any]) -> Path:
+    return Path(inputs.get("output_path") or "out/flow_video")
 
 
 class FlowVideo(BaseTool):
@@ -148,6 +156,10 @@ class FlowVideo(BaseTool):
                 "type": "string",
                 "description": "Directory where video will be saved (default: out/flow_video).",
             },
+            "timeout_seconds": {
+                "type": "number",
+                "description": "Abandon the sw call after this many seconds (default: 2x the model estimate).",
+            },
             "dry_run": {
                 "type": "boolean",
                 "default": False,
@@ -211,14 +223,38 @@ class FlowVideo(BaseTool):
             return 75.0
         return 60.0  # omni-flash default
 
-    def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        sw = _sw_binary()
-        if not sw:
-            return ToolResult(
-                success=False,
-                error="StudioWright (sw) not found. " + self.install_instructions,
-            )
+    def build_command(self, inputs: dict[str, Any]) -> list[str]:
+        """The exact `sw` argv for these inputs (used by --plan and by execute)."""
+        cmd = [_sw_binary() or "sw"]
+        if inputs.get("profile"):
+            cmd += ["--profile", inputs["profile"]]
+        cmd += [
+            "video", inputs["prompt"],
+            "--model", inputs.get("model", "omni-flash"),
+            "--duration", str(inputs.get("duration", 8)),
+            "--aspect", inputs.get("aspect_ratio", "16:9"),
+            "--resolution", inputs.get("resolution", "720p"),
+            "--size", inputs.get("size", "1080p"),
+            "--out", str(_out_dir(inputs)),
+            "--json",
+        ]
+        if inputs.get("start_frame"):
+            cmd += ["--start", inputs["start_frame"]]
+        if inputs.get("end_frame"):
+            cmd += ["--end", inputs["end_frame"]]
+        ref_paths = inputs.get("ref_paths") or []
+        if ref_paths:
+            cmd += ["--mode", "ingredients"]
+            for ref in ref_paths:
+                cmd += ["--ref", ref]
+        if inputs.get("dry_run"):
+            cmd.append("--dry-run")
+        if inputs.get("max_credits") is not None:
+            # sw --max-credits is INTEGER; a float would be rejected by click.
+            cmd += ["--max-credits", str(int(inputs["max_credits"]))]
+        return cmd
 
+    def execute(self, inputs: dict[str, Any]) -> ToolResult:
         prompt = inputs["prompt"]
         model = inputs.get("model", "omni-flash")
         duration = inputs.get("duration", 8)
@@ -226,42 +262,23 @@ class FlowVideo(BaseTool):
         resolution = inputs.get("resolution", "720p")
         size = inputs.get("size", "1080p")
         dry_run = inputs.get("dry_run", False)
-        max_credits = inputs.get("max_credits")
-        start_frame = inputs.get("start_frame")
-        end_frame = inputs.get("end_frame")
-        ref_paths: list[str] = inputs.get("ref_paths") or []
         profile = inputs.get("profile")
 
-        out_dir = Path(inputs.get("output_path") or "out/flow_video")
+        sw = _sw_binary()
+        if not sw:
+            return ToolResult(
+                success=False,
+                error="StudioWright (sw) not found. " + self.install_instructions,
+            )
+
+        cmd = self.build_command(inputs)
+        out_dir = _out_dir(inputs)
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        cmd: list[str] = [sw]
-        if profile:
-            cmd += ["--profile", profile]
-        cmd += [
-            "video", prompt,
-            "--model", model,
-            "--duration", str(duration),
-            "--aspect", aspect,
-            "--resolution", resolution,
-            "--size", size,
-            "--out", str(out_dir),
-            "--json",
-        ]
-        if start_frame:
-            cmd += ["--start", start_frame]
-        if end_frame:
-            cmd += ["--end", end_frame]
-        if ref_paths:
-            cmd += ["--mode", "ingredients"]
-            for ref in ref_paths:
-                cmd += ["--ref", ref]
-        if dry_run:
-            cmd.append("--dry-run")
-        if max_credits is not None:
-            cmd += ["--max-credits", str(max_credits)]
-
-        timeout_s = max(300, int(self.estimate_runtime(inputs)) * 2)
+        timeout_s = float(
+            inputs.get("timeout_seconds")
+            or max(300, int(self.estimate_runtime(inputs)) * 2)
+        )
         start = time.time()
         try:
             result = subprocess.run(
@@ -275,7 +292,7 @@ class FlowVideo(BaseTool):
         except subprocess.TimeoutExpired:
             return ToolResult(
                 success=False,
-                error=f"flow_video timed out after {timeout_s}s. "
+                error=f"flow_video timed out after {timeout_s:.0f}s. "
                       "Chrome may be minimized — use `sw window hide` instead.",
             )
         except Exception as exc:
