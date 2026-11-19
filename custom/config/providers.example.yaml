@@ -1,0 +1,69 @@
+# custom/config/providers.example.yaml — 占位符示例，不是密钥文件。
+#
+# 用途：把「六个工具到底有哪些旋钮、默认值是什么」集中成一份可对照的清单。
+# 现状：工具本身读环境变量 + CLI 参数（见 custom/tools/REGISTRY.md），本文件
+# 目前不会被任何代码加载；改默认值请改 CLI 参数或环境变量。
+#
+# 纪律：本文件只允许占位符。真实 key 只允许来自环境变量、被忽略的 `.env` 或
+# `~/.harness/`，永远不要写进这里、日志或 git。
+
+openrouter:
+  # 环境变量 OPENROUTER_API_KEY（缺失时 live 路径直接退出 2）
+  api_key: "REPLACE_WITH_OPENROUTER_API_KEY"
+  # 环境变量 OPENROUTER_BASE_URL（只在自建代理 / 本地回放时改）
+  base_url: "https://openrouter.ai/api/v1"
+
+  defaults:
+    image:
+      model: "openai/gpt-image-2"        # 已核对存在于 GET /api/v1/images/models
+      aspect_ratio: "16:9"
+      quality: null                      # auto | low | medium | high
+    speech:
+      model: "mistralai/voxtral-mini-tts-2603"   # 已核对存在于语音目录
+      voice: null                        # 必须是该模型 supported_voices 里的 id
+      response_format: "mp3"             # mp3 | pcm
+      pcm_sample_rate: null              # response_format=pcm 时必填
+    video:
+      model: "google/veo-3.1"            # 已核对存在于 GET /api/v1/videos/models
+      duration: null                     # 秒；按模型 supported_durations 校验
+      aspect_ratio: null                 # 如 16:9 / 9:16；按模型目录校验
+      poll_interval_seconds: 30
+      poll_timeout_seconds: 900
+      max_bytes: 536870912               # 512 MiB 下载上限
+
+  retry:
+    max_attempts: 3
+    retry_statuses: [408, 425, 429, 500, 502, 503, 504]
+
+flow:
+  # 凭据不在这里：StudioWright 自己管理 Chrome profile 的登录态。
+  # 就绪检查：make -f custom/Makefile sw-credentials（只打印 bool + 路径）
+  studiowright_profile: null             # 对应 sw --profile
+
+  image:
+    model: "nano-banana-2.1"             # nano-banana-pro | nano-banana-2-lite
+    aspect_ratio: "16:9"                 # 4:3 | 1:1 | 3:4 | 9:16
+    count: 1                             # 1-4
+    size: "2K"                           # 1K | 4K
+
+  video:
+    model: "omni-flash"                  # omni-flash-1.2 | veo-lite | veo-fast | veo-quality
+    duration: 8                          # Omni 1.1: 4/6/8/10；Omni 1.2: 3-15
+    aspect_ratio: "16:9"                 # 9:16
+    resolution: "720p"                   # 360p
+    size: "1080p"                        # 720p | 4K | 270p
+    max_credits: null                    # Flow 报价高于此整数额度就不提交
+
+  music:
+    model: "lyria-3.5"                   # lyria-3-pro
+    action: "create"                     # extend | cover | replace | variation | trim | stems
+    length: "1:30"                       # M:SS，1:00-3:00
+    format: "mp3"                        # wav | m4a
+
+  retries: 0                             # 仅在 timeout 时重试；重试=重新提交，可能重复扣额度
+
+media:
+  # 环境变量 FFMPEG / FFPROBE；显式路径优先，缺省按 /usr/bin → PATH 探测，
+  # 只有能跑 `-version` 成功的二进制才会被采用。
+  ffmpeg: null
+  ffprobe: null

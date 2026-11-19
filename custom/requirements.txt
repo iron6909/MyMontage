@@ -1,0 +1,16 @@
+# custom/requirements.txt — dependencies added by MyMontage custom code.
+#
+# Install with:  pip install -r custom/requirements.txt
+#
+# Empty on purpose (MOZ-23 … MOZ-27): every tool under custom/tools/ imports only
+# the standard library plus this repo's own `tools/` package. Pinning packages
+# here that nothing imports would just be a second, drifting copy of
+# ../requirements.txt.
+#
+# What the custom tools DO need is already covered elsewhere:
+#   - `tools.base_tool` / registry  -> ../requirements.txt (pyyaml, pydantic, ...)
+#   - ffmpeg / ffprobe binaries     -> system packages; probed via FFMPEG / FFPROBE
+#   - StudioWright (`sw`) CLI       -> `make -f custom/Makefile sw-install` (uv tool)
+#   - Piper voice + upstream patch  -> `make -f custom/Makefile local-setup`
+#
+# Add a real pin below only when a file in custom/ actually imports it.
