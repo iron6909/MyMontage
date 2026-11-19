@@ -10,6 +10,13 @@ stdlib urllib only):
       GET  {base}/images/models  -> {"data": [{"id", "supported_parameters", ...}]}
                                     (live catalogue: 70 entries)
 
+  https://openrouter.ai/docs/guides/overview/multimodal/video-generation
+      POST {base}/videos                  -> 202 {"id", "polling_url", "status"}
+      GET  {base}/videos/{id}             -> {"status", "unsigned_urls", "usage"}
+      GET  {base}/videos/{id}/content     -> the mp4 bytes, *not* presigned, so the
+                                             Authorization header is required.
+                                             `get_raw` is the call that fetches them.
+
   https://openrouter.ai/docs/guides/features/compatibility
       "/api/v1/images and /api/v1/images/generations" are the same POST route.
 
@@ -226,22 +233,53 @@ class OpenRouterClient:
         only to quote the server's JSON error message. Bytes are capped so a
         runaway response cannot exhaust memory.
         """
+        return self._raw(
+            "POST", path, payload=payload, accept="audio/*", max_bytes=max_bytes, timeout=timeout
+        )
+
+    def get_raw(
+        self,
+        path: str,
+        *,
+        max_bytes: int = MAX_MEDIA_BYTES,
+        accept: str = "application/octet-stream",
+        timeout: float | None = None,
+    ) -> tuple[bytes, dict[str, Any]]:
+        """GET and return the body as bytes — the video content route replies with mp4.
+
+        Video outputs are *not* presigned, so this sends the API key; the path stays
+        relative to the base URL so an API-supplied URL never decides where the bytes
+        come from. Same byte cap and retry policy as `post_raw`.
+        """
+        return self._raw(
+            "GET", path, payload=None, accept=accept, max_bytes=max_bytes, timeout=timeout
+        )
+
+    def _raw(
+        self,
+        method: str,
+        path: str,
+        *,
+        payload: dict[str, Any] | None,
+        accept: str,
+        max_bytes: int,
+        timeout: float | None,
+    ) -> tuple[bytes, dict[str, Any]]:
         url = f"{self.base_url}/{path.lstrip('/')}"
         if not self.api_key:
-            raise MissingApiKey(f"{ENV_API_KEY} is not set; nothing was sent to POST {url}")
+            raise MissingApiKey(f"{ENV_API_KEY} is not set; nothing was sent to {method} {url}")
+        headers = {"Accept": accept, "Authorization": f"Bearer {self.api_key}"}
+        if payload is not None:
+            headers["Content-Type"] = "application/json"
         request = urllib.request.Request(  # noqa: S310 — scheme comes from the base URL
             url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Accept": "audio/*",
-                "Authorization": f"Bearer {self.api_key}",
-            },
-            method="POST",
+            data=None if payload is None else json.dumps(payload).encode("utf-8"),
+            headers=headers,
+            method=method,
         )
         data, meta = self._with_retry(
             request,
-            "POST",
+            method,
             path,
             self.timeout if timeout is None else float(timeout),
             as_bytes=True,
@@ -249,7 +287,7 @@ class OpenRouterClient:
         )
         if len(data) > max_bytes:
             raise OpenRouterError(
-                f"response from POST {url} exceeds the {max_bytes} byte limit"
+                f"response from {method} {url} exceeds the {max_bytes} byte limit"
             )
         return data, meta
 
