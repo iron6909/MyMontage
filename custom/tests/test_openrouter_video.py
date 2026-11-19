@@ -66,9 +66,14 @@ def _use_fake_client(results, api_key: str | None = KEY):
     def factory(**kwargs):
         kwargs.pop("timeout", None)
         kwargs.pop("max_attempts", None)
-        return OpenRouterClient(
+        client = OpenRouterClient(
             opener=opener, api_key=api_key, sleep=lambda _s: None, **kwargs
         )
+        if api_key is None:
+            # "no key" must not depend on the ambient environment or
+            # ~/.harness/providers.env; nothing may be sent in these tests.
+            client.api_key = None
+        return client
 
     ov.OpenRouterClient = factory  # type: ignore[assignment]
     return opener
@@ -153,6 +158,7 @@ def test_get_raw_returns_bytes_and_authorizes():
 
 def test_get_raw_sends_nothing_without_a_key():
     client, opener = _client(api_key=None)
+    client.api_key = None  # "no key" must not depend on the ambient environment
     try:
         client.get_raw("videos/abc/content")
     except MissingApiKey as exc:

@@ -24,6 +24,12 @@ Auth is ``Authorization: Bearer $OPENROUTER_API_KEY``. The key never reaches a
 log line, an exception message or a repr: every message is rebuilt from URL,
 status and body, and `_redact` scrubs the key as a second line of defence.
 
+Both settings are read from the process environment first. When one is unset —
+a direct CLI run, rather than a run-worker child that got the file injected — it
+is filled in from the fixed trusted file ``$HOME/.harness/providers.env``; see
+`providers_env`. The environment always wins, and a missing file or key just
+leaves the setting unset.
+
 Smoke test (GET the catalogue; no key, no cost):
 
     python3 -m custom.tools.common.openrouter_client
@@ -45,9 +51,14 @@ import urllib.request
 from collections.abc import Callable, Iterable
 from typing import Any
 
+from custom.tools.common.providers_env import load_local_env
+
 DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
 ENV_API_KEY = "OPENROUTER_API_KEY"
 ENV_BASE_URL = "OPENROUTER_BASE_URL"
+# Fallback source for the two settings above, when the environment is silent.
+LOCAL_ENV_FILE = "~/.harness/providers.env"
+_MISSING_KEY = f"{ENV_API_KEY} is not set in the environment or in {LOCAL_ENV_FILE}"
 
 # 429 = rate limited, 5xx = provider side. 408/425 are the same "ask again later".
 RETRY_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
@@ -72,12 +83,21 @@ class MissingApiKey(OpenRouterError):
     """The call needs `OPENROUTER_API_KEY` and it is not set."""
 
 
+def _local_setting(name: str) -> str:
+    """One setting from the trusted local file, or "". Never the whole file."""
+    return load_local_env((name,)).get(name, "")
+
+
 def resolve_base_url(value: str | None = None) -> str:
-    return (value or os.environ.get(ENV_BASE_URL) or DEFAULT_BASE_URL).rstrip("/")
+    """Explicit value, then the environment, then the local file, then the default."""
+    return (
+        value or os.environ.get(ENV_BASE_URL) or _local_setting(ENV_BASE_URL) or DEFAULT_BASE_URL
+    ).rstrip("/")
 
 
 def resolve_api_key(value: str | None = None) -> str | None:
-    return (value or os.environ.get(ENV_API_KEY) or "").strip() or None
+    """Explicit value, then the environment, then the local file. None if all silent."""
+    return (value or os.environ.get(ENV_API_KEY) or _local_setting(ENV_API_KEY) or "").strip() or None
 
 
 def _redact(text: str, key: str | None) -> str:
@@ -210,9 +230,7 @@ class OpenRouterClient:
             headers["Content-Type"] = "application/json"
         if auth:
             if not self.api_key:
-                raise MissingApiKey(
-                    f"{ENV_API_KEY} is not set; nothing was sent to {method} {url}"
-                )
+                raise MissingApiKey(f"{_MISSING_KEY}; nothing was sent to {method} {url}")
             headers["Authorization"] = f"Bearer {self.api_key}"
         request = urllib.request.Request(  # noqa: S310 — scheme comes from the base URL
             url, data=body, headers=headers, method=method
@@ -267,7 +285,7 @@ class OpenRouterClient:
     ) -> tuple[bytes, dict[str, Any]]:
         url = f"{self.base_url}/{path.lstrip('/')}"
         if not self.api_key:
-            raise MissingApiKey(f"{ENV_API_KEY} is not set; nothing was sent to {method} {url}")
+            raise MissingApiKey(f"{_MISSING_KEY}; nothing was sent to {method} {url}")
         headers = {"Accept": accept, "Authorization": f"Bearer {self.api_key}"}
         if payload is not None:
             headers["Content-Type"] = "application/json"
