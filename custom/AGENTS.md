@@ -17,3 +17,9 @@
 
 ## 4. 运行产物与验证证据零入库
 - `.task/`、`out/`、`projects/` 仅通过本地 `.git/info/exclude` 忽略，**严禁将 `.task/evidence/` 下的任何日志或截图 `git add` 提交入库**。
+
+## 5. 索引（从这里去哪里找）
+- **工具调用契约**：`custom/tools/REGISTRY.md` —— Flow 图像/视频/音乐 + OpenRouter 图像/语音/视频六个工具的完整命令、必需参数、已核对模型与能力限制。写命令前先读它，不要凭记忆或旧文档。
+- **新增依赖**：`custom/requirements.txt`。**新增配置**：`custom/config/`（示例 `custom/config/providers.example.yaml`，只允许占位符，禁止写入真实密钥）。
+- **快捷命令**：`custom/Makefile`（`make -f custom/Makefile <target>`）。
+- **专项说明**：Flow 接入 `custom/docs/FLOW.md`；本地部署 `custom/docs/LOCAL_DEPLOY.md`。
