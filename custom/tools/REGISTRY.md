@@ -25,14 +25,23 @@
 
 | 变量 | 作用 | 缺省 |
 | --- | --- | --- |
-| `OPENROUTER_API_KEY` | OpenRouter 鉴权 | 无；缺失时 live 路径直接退出 2，什么都不发 |
-| `OPENROUTER_BASE_URL` | 覆盖 API 根（自建代理 / 本地回放） | `https://openrouter.ai/api/v1` |
+| `OPENROUTER_API_KEY` | OpenRouter 鉴权 | 无；进程环境缺失时读 `$HOME/.harness/providers.env`，两处都没有则 live 路径直接退出 2，什么都不发 |
+| `OPENROUTER_BASE_URL` | 覆盖 API 根（自建代理 / 本地回放） | `https://openrouter.ai/api/v1`；进程环境缺失时同样读 `$HOME/.harness/providers.env` |
 | `FFMPEG` | 音频归一化用的 ffmpeg | 先探 `/usr/bin/ffmpeg`，再探 `PATH`；**第一个能 `-version` 成功的**才算数 |
 | `FFPROBE` | 视频写入前校验用的 ffprobe | 同上顺序（`/usr/bin/ffprobe` 优先于 `PATH`） |
 
 探测顺序固定为 `显式参数 → 环境变量 → /usr/bin → PATH`。本机 Homebrew 的
 `ffmpeg`/`ffprobe` 因缺 `libx265.so.216` 起不来，所以会被跳过，实际使用
 `/usr/bin/ffmpeg`、`/usr/bin/ffprobe`（8.0.1）。日志里每次都打印实际二进制。
+
+`~/.harness/providers.env` 就是 run-worker 启动 pi/agy 前注入的那个受信本地文件
+（MOZ-29）。直接跑 CLI 时进程环境里往往没有这两项，OpenRouter 客户端就从这条
+**写死的路径**补齐，顺序是 `显式参数 → 进程环境 → 该文件 → 代码缺省`。解析在
+`custom/tools/common/providers_env.py`：只认 `KEY=VALUE` / `export KEY=VALUE` /
+成对引号 / `#` 注释，不 `eval`、不做 shell 展开、不回显行内容；只取调用方点名的
+键，文件里其它行一律忽略，也不写回 `os.environ`。文件缺失、不可读、或某行语法
+无效都只等于「没有这个值」（无效行按行号跳过），不抛异常、不伪造密钥；仓库 `.env`
+不是注入源，也不读 HTTP。
 
 OpenRouter 客户端重试策略（`custom/tools/common/openrouter_client.py`）：
 `408/425/429/5xx` 与超时/连接错误可重试，退避 `1,2,4,8…` 秒（上限 8），

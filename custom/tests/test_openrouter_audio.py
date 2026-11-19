@@ -155,6 +155,7 @@ def test_dropped_connection_is_a_status_not_a_traceback():
 
 def test_post_raw_sends_nothing_without_a_key():
     client, opener = _client(api_key=None)
+    client.api_key = None  # "no key" must not depend on the ambient environment
     try:
         client.post_raw("audio/speech", {"model": "m", "input": "hi"})
     except MissingApiKey as exc:
