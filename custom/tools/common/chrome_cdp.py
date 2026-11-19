@@ -33,6 +33,7 @@ import json
 import os
 import subprocess
 import time
+import zlib
 from dataclasses import dataclass, field
 from http.client import HTTPConnection, HTTPSConnection
 from urllib.parse import urlsplit, urlunsplit
@@ -45,6 +46,19 @@ WAIT_SECONDS = 3.0
 PROBE_TIMEOUT = 2.0
 START_TIMEOUT = 15.0
 _VERSION_KEYS = ("webSocketDebuggerUrl", "Browser")
+
+# StudioWright's own Chrome is a *different* loopback endpoint from the unit's
+# 9222. Its port is chrome.py `debug_port()`: PORT_BASE + crc32(profile) % PORT_SPAN
+# (StudioWright 0.2.13), so profile "default" -> 9319. The preflight above only
+# ever gates 9222; these helpers exist so a failure can name which port is
+# actually dead instead of blaming the endpoint that already answered.
+SW_PORT_BASE = 9300
+SW_PORT_SPAN = 90
+SW_DEFAULT_PROFILE = "default"
+_SW_PORT_FAILURE_MARKERS = (
+    "debugging port", "connection refused", "connectionrefused",
+    "connect call failed", "econnrefused", "err_connection_refused",
+)
 
 
 @dataclass
@@ -148,6 +162,36 @@ def probe_cdp(url: str, timeout: float = PROBE_TIMEOUT) -> bool:
     except json.JSONDecodeError:
         return False
     return isinstance(data, dict) and any(key in data for key in _VERSION_KEYS)
+
+
+def sw_debug_port(profile: str | None = None) -> int:
+    """The loopback port `sw` starts its own Chrome on ("default" -> 9319)."""
+    name = (profile or SW_DEFAULT_PROFILE).encode("utf-8")
+    return SW_PORT_BASE + zlib.crc32(name) % SW_PORT_SPAN
+
+
+def sw_port_status(profile: str | None = None, probe=probe_cdp) -> dict:
+    """Probe sw's port. Injected probe: tests never open a socket."""
+    name = profile or SW_DEFAULT_PROFILE
+    port = sw_debug_port(name)
+    url = f"http://127.0.0.1:{port}"
+    return {"profile": name, "port": port, "url": url, "reachable": bool(probe(url))}
+
+
+def looks_like_sw_port_failure(text: str) -> bool:
+    """True when `sw` failed on its own browser port rather than on anything else."""
+    lowered = (text or "").lower()
+    return any(marker in lowered for marker in _SW_PORT_FAILURE_MARKERS)
+
+
+def sw_port_note(cdp: CdpStatus, sw: dict) -> str:
+    """One sentence keeping the two loopback ports apart in a failure report."""
+    state = "answered" if sw.get("reachable") else "did not answer"
+    return (
+        f"{cdp.url} is the harness CDP endpoint and it answered; sw does not use it. "
+        f"sw starts its own Chrome on 9300 + crc32(profile) % 90, which is "
+        f"{sw['port']} for profile '{sw['profile']}', and that port {state}."
+    )
 
 
 def _first_line(text: str, limit: int = 200) -> str:

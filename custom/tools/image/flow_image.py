@@ -11,6 +11,10 @@ Prerequisites
 
 Entry point (from the repository root):
     python3 -m custom.plugins.studiowright image --help
+
+`sw` reaches its Chrome on its own loopback port (9300 + crc32(profile) % 90), so
+every call hands it `custom.tools.common.proxy_env.sw_env()`: the full parent env
+with loopback kept out of `HTTP(S)_PROXY`.
 """
 
 from __future__ import annotations
@@ -21,11 +25,17 @@ import time
 from pathlib import Path
 from typing import Any
 
+# pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
 from custom.plugins.studiowright.client import (
     output_files,
     parse_sw_json,
     recover_download,
 )
+
+# pi-lens-ignore: reportMissingImports -- resolved from the repo root
+from custom.tools.common.proxy_env import sw_env
+
+# pi-lens-ignore: reportMissingImports -- resolved from the repo root
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -265,6 +275,7 @@ class FlowImage(BaseTool):
                 encoding="utf-8",
                 errors="replace",
                 timeout=timeout_s,
+                env=sw_env(),
             )
         except subprocess.TimeoutExpired:
             return ToolResult(

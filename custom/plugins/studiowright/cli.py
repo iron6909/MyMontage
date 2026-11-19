@@ -41,7 +41,12 @@ from pathlib import Path
 from typing import Any
 
 # pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
-from custom.tools.common.chrome_cdp import ensure_cdp
+from custom.tools.common.chrome_cdp import (
+    ensure_cdp,
+    looks_like_sw_port_failure,
+    sw_port_note,
+    sw_port_status,
+)
 
 # tool name -> "module:class". Imported lazily so `--help` works even when an
 # optional dependency of one tool is missing.
@@ -182,6 +187,7 @@ def run(name: str, args: argparse.Namespace) -> int:
 
     # Live runs drive a browser over CDP. --plan/--dry-run never reach this, and
     # a non-loopback CHROME_CDP_URL is reported instead of being started locally.
+    cdp = None
     if not args.dry_run:
         cdp = ensure_cdp()
         if not cdp.ok:
@@ -200,8 +206,20 @@ def run(name: str, args: argparse.Namespace) -> int:
 
     command = result.data.get("command")
     if not result.success:
-        return _emit(_status("error", tool, inputs, attempts=attempts, error=result.error,
-                             duration_seconds=round(time.time() - started, 2), command=command))
+        error = result.error or "the tool failed without an error message"
+        extra: dict[str, Any] = {}
+        if cdp is not None:
+            # Only a live run has a preflight result to contrast sw's port with.
+            extra["cdp"] = cdp.as_dict()
+            if looks_like_sw_port_failure(error):
+                # sw's own browser port is not the endpoint the preflight gated,
+                # so name the port that actually failed instead of blaming 9222.
+                sw_cdp = sw_port_status(inputs.get("profile"))
+                extra["sw_cdp"] = sw_cdp
+                error = f"{error.rstrip()} {sw_port_note(cdp, sw_cdp)}"
+        return _emit(_status("error", tool, inputs, attempts=attempts, error=error,
+                             duration_seconds=round(time.time() - started, 2),
+                             command=command, **extra))
 
     files = [p for p in (result.artifacts or []) if Path(p).is_file()]
     dry_run = bool(result.data.get("dry_run"))
