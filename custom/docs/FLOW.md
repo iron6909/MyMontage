@@ -94,7 +94,32 @@ make -f custom/Makefile chrome-cdp-install    # 只复制到 ~/.config/systemd/u
 边界：预检只验证端点可达——不登录 Google、不填表单、不开隧道/代理、不动你日常
 的 Chrome profile、不杀已在跑的 Chrome。另外 `sw` 0.2.13 目前仍按自己的 9300+
 loopback 端口启动自己的 Chrome；把 `sw` 接到这条端点上**不在本单范围**，本单只
-把「端点没起来」变成一句明确的非 0 错误。
+把「端点没起来」变成一句明确的非 0 错误，并区分是哪一个 loopback 端口没应答。
+
+### 两个 loopback 端口不是同一个
+
+| 端口 | 谁在听 | 预检管不管 |
+| --- | --- | --- |
+| `9222`（或 `CHROME_CDP_URL` 指定的那个） | 本仓的 `chrome-cdp.service` | 管：live 运行的唯一门禁 |
+| `9300 + crc32(profile) % 90`（`default` → **9319**） | `sw` 自己拉起的 Chrome（`chrome.py debug_port`） | 不管：由 `sw` 负责 |
+
+`CHROME_CDP_URL` 不被 `sw` 读取，本仓也从不改写它——非 loopback 的 URL 原样透传
+给子进程。所以 `chrome.py` 那句 `Chrome did not open its debugging port` 说的是
+**sw 自己的 9319**，不是 9222 没开。这类失败的错误对象里会同时带上 `cdp`（已经
+应答的 9222）和 `sw_cdp`（`profile` / `port` / `url` / `reachable`），`error` 里
+点名是哪个端口没应答。
+
+### 传给 `sw` 的环境变量
+
+每次调用 `sw` 都显式传 `env=`：`os.environ` 的**完整拷贝**，只把 `NO_PROXY` /
+`no_proxy` 合并后加入 `127.0.0.1,localhost,::1`（已有的绕行域保留）。原因：`sw`
+用 `urllib` 探自己的 loopback 端口，`HTTP(S)_PROXY` 一旦生效，这次请求会被代理
+出去，端口看起来就是死的。除这两个变量外不改任何东西，也不打印环境。
+实现是 `custom/tools/common/proxy_env.py` 的 `sw_env()`：
+
+```bash
+python3 -m custom.tests.test_flow_sw_env    # no_proxy 合并 + 子进程透传 + 端口区分
+```
 
 ## 已核对的 `sw` 契约（StudioWright 0.2.13，本机安装）
 

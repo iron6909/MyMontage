@@ -30,6 +30,7 @@
 | `FFMPEG` | 音频归一化用的 ffmpeg | 先探 `/usr/bin/ffmpeg`，再探 `PATH`；**第一个能 `-version` 成功的**才算数 |
 | `FFPROBE` | 视频写入前校验用的 ffprobe | 同上顺序（`/usr/bin/ffprobe` 优先于 `PATH`） |
 | `CHROME_CDP_URL` | Flow **live** 运行前的本机 CDP 端点 | `http://127.0.0.1:9222`（本机默认）；只有 loopback 端点会触发一次 `systemctl --user start chrome-cdp.service` + 3 s 重探，仍失败即非 0；非 loopback 只探不动本机服务 |
+| `NO_PROXY` / `no_proxy` | `sw` 子进程的 loopback 绕行 | 两个拼写都取并集，再加 `127.0.0.1,localhost,::1`（已有绕行域保留）；其余环境变量原样透传给 `sw` |
 
 探测顺序固定为 `显式参数 → 环境变量 → /usr/bin → PATH`。本机 Homebrew 的
 `ffmpeg`/`ffprobe` 因缺 `libx265.so.216` 起不来，所以会被跳过，实际使用
@@ -54,6 +55,12 @@ Flow 三个工具是注册表里的 `BaseTool`（`flow_image`/`flow_video`/`flow
 `--plan` / `--dry-run`）在提交前统一过一道 CDP 预检
 （`custom/tools/common/chrome_cdp.py`，见 `custom/docs/FLOW.md`）；`--help`、
 `--plan`、`--dry-run` 不触发它，预检失败会先于提交报错（退出码 1）。
+
+预检只管 `9222`（或 `CHROME_CDP_URL` 指定的那个端点）。`sw` **自己**另起一个
+loopback 端口：`9300 + crc32(profile) % 90`，`default` → `9319`。所以
+`chrome.py` 的 `Chrome did not open its debugging port` 说的是 9319，不是 9222；
+这类失败的错误里会带上 `cdp`（已应答的 9222）与 `sw_cdp`
+（`profile`/`port`/`url`/`reachable`）。
 OpenRouter 三个工具是 **独立 argparse 脚本，不是 BaseTool**，不出现在
 `registry` 里。
 
@@ -291,6 +298,7 @@ python3 -m custom.tools.video.openrouter_video \
 | OpenRouter 共用客户端 | `custom/tools/common/openrouter_client.py` |
 | Flow CLI / `sw` 调用层 | `custom/plugins/studiowright/cli.py`、`client.py` |
 | Flow 本机 CDP 预检 + unit 模板 | `custom/tools/common/chrome_cdp.py`、`custom/config/systemd/chrome-cdp.service` |
+| `sw` 子进程环境（`NO_PROXY` 合并 + 全量透传） | `custom/tools/common/proxy_env.py` |
 | Flow 免侵入说明 | `custom/docs/FLOW.md` |
-| 契约自检 | `custom/tests/test_flow_contract.py`、`custom/tests/test_flow_cdp_preflight.py`、`custom/tests/test_openrouter_*.py` |
+| 契约自检 | `custom/tests/test_flow_contract.py`、`custom/tests/test_flow_cdp_preflight.py`、`custom/tests/test_flow_sw_env.py`、`custom/tests/test_openrouter_*.py` |
 | 本地部署 | `custom/docs/LOCAL_DEPLOY.md` |

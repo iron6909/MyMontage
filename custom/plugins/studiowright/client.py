@@ -12,6 +12,9 @@ import json
 import subprocess
 from pathlib import Path
 
+# pi-lens-ignore: reportMissingImports -- resolved from the repo root
+from custom.tools.common.proxy_env import sw_env
+
 
 def parse_sw_json(stdout: str) -> dict:
     """Return the object `sw --json` printed, or {} when there is none."""
@@ -52,7 +55,7 @@ def run_json(cmd: list[str], timeout_s: float = 300) -> dict:
     try:
         result = subprocess.run(
             cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=timeout_s,
+            timeout=timeout_s, env=sw_env(),
         )
     except Exception:
         return {}
