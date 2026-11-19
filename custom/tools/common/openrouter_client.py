@@ -25,6 +25,7 @@ Smoke test (GET the catalogue; no key, no cost):
 from __future__ import annotations
 
 import argparse
+import http.client
 import ipaddress
 import json
 import os
@@ -211,6 +212,47 @@ class OpenRouterClient:
         )
         return self._with_retry(request, method, path, self.timeout if timeout is None else float(timeout))
 
+    def post_raw(
+        self,
+        path: str,
+        payload: dict[str, Any],
+        *,
+        max_bytes: int = MAX_MEDIA_BYTES,
+        timeout: float | None = None,
+    ) -> tuple[bytes, dict[str, Any]]:
+        """POST and return the body as bytes — the speech API replies with audio.
+
+        A success body is never parsed as JSON; only a non-2xx body is read, and
+        only to quote the server's JSON error message. Bytes are capped so a
+        runaway response cannot exhaust memory.
+        """
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        if not self.api_key:
+            raise MissingApiKey(f"{ENV_API_KEY} is not set; nothing was sent to POST {url}")
+        request = urllib.request.Request(  # noqa: S310 — scheme comes from the base URL
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "audio/*",
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            method="POST",
+        )
+        data, meta = self._with_retry(
+            request,
+            "POST",
+            path,
+            self.timeout if timeout is None else float(timeout),
+            as_bytes=True,
+            limit=max_bytes,
+        )
+        if len(data) > max_bytes:
+            raise OpenRouterError(
+                f"response from POST {url} exceeds the {max_bytes} byte limit"
+            )
+        return data, meta
+
     def download_media(self, url: str, *, max_bytes: int = MAX_MEDIA_BYTES) -> bytes:
         """Fetch one media URL. Cap in bytes, https only, and never with the API key."""
         host = check_media_url(url)
@@ -229,14 +271,22 @@ class OpenRouterClient:
     # -- internals ------------------------------------------------------
 
     def _with_retry(
-        self, request: urllib.request.Request, method: str, path: str, timeout: float
+        self,
+        request: urllib.request.Request,
+        method: str,
+        path: str,
+        timeout: float,
+        *,
+        as_bytes: bool = False,
+        limit: int | None = None,
     ) -> tuple[Any, dict[str, Any]]:
         for attempt in range(1, self.max_attempts + 1):
             started = time.monotonic()
             try:
-                status, raw = self._send(request, timeout)
+                status, body = self._send(request, timeout, limit)
                 if 200 <= status < 300:
-                    return self._decode(raw, request.full_url, status), {
+                    decoded = body if as_bytes else self._decode(body, request.full_url, status)
+                    return decoded, {
                         "method": method,
                         "path": path,
                         "url": request.full_url,
@@ -246,7 +296,7 @@ class OpenRouterClient:
                         "mode": "live",
                     }
                 raise OpenRouterError(
-                    f"HTTP {status} from {method} {request.full_url}: {self._snippet(raw)}",
+                    f"HTTP {status} from {method} {request.full_url}: {self._snippet(body)}",
                     status=status,
                     retryable=status in RETRY_STATUS or status >= 500,
                 )
@@ -282,6 +332,14 @@ class OpenRouterClient:
         except TimeoutError:
             raise OpenRouterError(
                 f"timed out after {timeout:g}s for {request.get_method()} {request.full_url}",
+                retryable=True,
+            ) from None
+        except (http.client.HTTPException, ConnectionError) as exc:
+            # RemoteDisconnected, BadStatusLine, resets: urlopen lets these escape
+            # uncaught, so without this a dropped connection is a traceback.
+            raise OpenRouterError(
+                f"connection failed for {request.get_method()} {request.full_url}: "
+                f"{type(exc).__name__}: {exc}",
                 retryable=True,
             ) from None
 
