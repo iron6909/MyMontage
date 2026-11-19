@@ -8,6 +8,10 @@ SCRIPTS    := $(CUSTOM_DIR)/scripts
 VENV_DIR   ?= $(REPO_ROOT)/.venv
 PYTHON     ?= $(VENV_DIR)/bin/python
 
+# chrome-cdp: the loopback DevTools endpoint the Flow tools preflight against.
+CHROME_CDP_UNIT := $(CUSTOM_DIR)/config/systemd/chrome-cdp.service
+USER_UNIT_DIR   ?= $(HOME)/.config/systemd/user
+
 # Both scripts resolve tools.*, requirements.txt and out/ against the repo root,
 # so a call from anywhere else must fail loudly instead of writing custom/out/.
 ROOT_GUARD := @[ "$$(pwd -P)" = "$(REPO_ROOT)" ] || { echo "ERROR: run this from the repository root: cd $(REPO_ROOT) && make -f custom/Makefile <target>"; exit 1; }
@@ -15,7 +19,7 @@ ROOT_GUARD := @[ "$$(pwd -P)" = "$(REPO_ROOT)" ] || { echo "ERROR: run this from
 .DEFAULT_GOAL := help
 .PHONY: help local-setup sample \
         sw-install sw-auth-flow sw-auth-music sw-hide sw-doctor sw-status sw-tools \
-        flow flow-help sw-credentials
+        flow flow-help sw-credentials chrome-cdp-check chrome-cdp-install
 
 help:
 	@echo "custom/ - local-only deploy (no GPU, no API keys)"
@@ -31,6 +35,10 @@ help:
 	@echo "  make -f custom/Makefile sw-status        # show pacing + recent jobs"
 	@echo "  make -f custom/Makefile sw-tools         # verify flow_image/video/music are registered"
 	@echo "  make -f custom/Makefile sw-credentials   # credential presence only (bool + path)"
+	@echo ""
+	@echo "Loopback CDP endpoint for the Flow tools (docs: custom/docs/FLOW.md):"
+	@echo "  make -f custom/Makefile chrome-cdp-check   # probe the endpoint, start nothing else"
+	@echo "  make -f custom/Makefile chrome-cdp-install # copy the unit template (no enable, no start)"
 	@echo ""
 	@echo "Google Flow tools (run from the repo root; docs: custom/docs/FLOW.md):"
 	@echo "  make -f custom/Makefile flow-help        # --help for image, video and music"
@@ -120,3 +128,24 @@ flow-help:
 	@bash "$(SCRIPTS)/flow_cli.sh" image --help
 	@bash "$(SCRIPTS)/flow_cli.sh" video --help
 	@bash "$(SCRIPTS)/flow_cli.sh" music --help
+
+# ── chrome-cdp (loopback CDP endpoint preflighted by every Flow live run) ───
+# Probe only. Starts chrome-cdp.service when the endpoint is loopback and dead
+# (same code path the Flow CLI uses); never enables it, never launches another
+# browser. Prints the JSON status; exit 0 = endpoint answered.
+chrome-cdp-check:
+	$(ROOT_GUARD)
+	@python3 -m custom.tools.common.chrome_cdp
+
+# Copy the unit template into the user session. Refuses to overwrite, and does
+# not enable or start it — deploying the service is a separate, explicit step.
+chrome-cdp-install:
+	$(ROOT_GUARD)
+	@test ! -e "$(USER_UNIT_DIR)/chrome-cdp.service" || { \
+		echo "ERROR: $(USER_UNIT_DIR)/chrome-cdp.service already exists — not overwriting."; \
+		echo "Inspect it with: systemctl --user cat chrome-cdp.service"; exit 1; }
+	@mkdir -p "$(USER_UNIT_DIR)"
+	@install -m 0644 "$(CHROME_CDP_UNIT)" "$(USER_UNIT_DIR)/chrome-cdp.service"
+	@systemctl --user daemon-reload
+	@echo "Installed $(USER_UNIT_DIR)/chrome-cdp.service (not enabled, not started)."
+	@echo "Deploy: systemctl --user enable --now chrome-cdp.service"

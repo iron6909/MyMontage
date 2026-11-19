@@ -14,7 +14,9 @@ Flow 的图像 / 视频 / 音乐走 [StudioWright](https://github.com/umutkocak/
 | `sw` 调用层 / CLI 入口（插件） | `custom/plugins/studiowright/` |
 | CLI 启动器 | `custom/scripts/flow_cli.sh` |
 | 凭证存在性检查 | `custom/scripts/sw_credentials.py` |
-| 契约自检 | `custom/tests/test_flow_contract.py` |
+| 本机 CDP 预检（共享） | `custom/tools/common/chrome_cdp.py` |
+| `chrome-cdp.service` 模板 | `custom/config/systemd/chrome-cdp.service` |
+| 契约自检 | `custom/tests/test_flow_contract.py`、`custom/tests/test_flow_cdp_preflight.py` |
 
 ## 入口（在仓根可跑，不再 `ModuleNotFoundError: custom`）
 
@@ -54,6 +56,45 @@ make -f custom/Makefile flow-help                     # 同上，一次跑完三
 
 `--prompt` / `--output` / `--timeout` / `--retries` 是三个工具共有的；其余
 `--model` / `--aspect` / `--count` / `--size` 等按子命令给出（见 `--help`）。
+
+## 本机 CDP 预检（live 运行的前置门禁）
+
+除 `--plan` / `--dry-run` 之外的真实运行，提交前会过一道 CDP 预检
+（`custom/tools/common/chrome_cdp.py`，由 `custom/plugins/studiowright/cli.py`
+调用一次）。三处入口（`python3 -m ...`、`flow_cli.sh`、`make flow`）都经过它，
+没有任何一个工具模块各自复制一份。
+
+| 情形 | 行为 |
+|---|---|
+| `CHROME_CDP_URL` 未设置 | 探 `http://127.0.0.1:9222/json/version`（本机默认） |
+| 端点有响应 | 直接放行，不碰 systemd |
+| loopback 端点无响应 | `systemctl --user start chrome-cdp.service` 一次 → 等 3 s → 再探一次 |
+| 重探仍失败 | `status: "error"`，退出码 1，错误里写明端点与 unit 状态 |
+| `CHROME_CDP_URL` 指向**非** loopback | 只探、**不**启动本机服务；连不上就是错误 |
+| URL 里带 userinfo / query | 探针本身不带凭据；日志与 JSON 里只有 `***@host:port` 与 `?***` |
+
+单独检查（与 Flow 入口同一份代码；只会在 loopback 且 unit 已安装时才去 start）：
+
+```bash
+make -f custom/Makefile chrome-cdp-check      # 打印 JSON 状态；端点通=0
+python3 -m custom.tools.common.chrome_cdp     # 等价
+```
+
+unit 模板是 `custom/config/systemd/chrome-cdp.service`：loopback `9222`、独立
+`~/.harness/chrome-flow-profile`、`--password-store=basic`、`--no-first-run`、
+`--no-default-browser-check`、`Restart=always`，起始页
+`https://labs.google/fx/tools/flow`；每个开关各占一个参数（多行续行）。
+本仓**不**安装、不 enable、不 start 它：
+
+```bash
+make -f custom/Makefile chrome-cdp-install    # 只复制到 ~/.config/systemd/user/；已存在则拒绝
+# 部署（运维步骤，不在本仓自动执行）：systemctl --user enable --now chrome-cdp.service
+```
+
+边界：预检只验证端点可达——不登录 Google、不填表单、不开隧道/代理、不动你日常
+的 Chrome profile、不杀已在跑的 Chrome。另外 `sw` 0.2.13 目前仍按自己的 9300+
+loopback 端口启动自己的 Chrome；把 `sw` 接到这条端点上**不在本单范围**，本单只
+把「端点没起来」变成一句明确的非 0 错误。
 
 ## 已核对的 `sw` 契约（StudioWright 0.2.13，本机安装）
 
