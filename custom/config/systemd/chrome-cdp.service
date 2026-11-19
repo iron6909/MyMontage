@@ -1,0 +1,40 @@
+# chrome-cdp.service — a user-session Chrome with a loopback DevTools endpoint.
+#
+# TEMPLATE ONLY. Nothing here is enabled, started or installed by the MOZ-31
+# change; `make -f custom/Makefile chrome-cdp-install` copies this file into
+# ~/.config/systemd/user/ and refuses to overwrite an existing unit. Turning it
+# on is a deploy decision:
+#
+#   systemctl --user enable --now chrome-cdp.service
+#
+# The endpoint stays on 127.0.0.1. Chrome refuses any other
+# --remote-debugging-address value anyway; do not add a tunnel, a proxy or a
+# wildcard bind here. The profile under ~/.harness/ is the Flow browser profile —
+# never point this unit at your everyday Chrome profile.
+#
+# The browser below is Debian/Ubuntu's system Chrome. Chromium or Brave users
+# change that one path (e.g. /usr/bin/chromium, /usr/bin/brave-browser); the
+# rest of the switches stay as they are:
+#
+#   systemctl --user edit chrome-cdp.service
+
+[Unit]
+Description=Chrome with loopback DevTools endpoint for MyMontage Flow (chrome-cdp)
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/google-chrome \
+    --remote-debugging-port=9222 \
+    --remote-debugging-address=127.0.0.1 \
+    --remote-allow-origins=* \
+    --user-data-dir=%h/.harness/chrome-flow-profile \
+    --password-store=basic \
+    --no-first-run \
+    --no-default-browser-check \
+    https://labs.google/fx/tools/flow
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

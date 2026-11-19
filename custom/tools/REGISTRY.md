@@ -29,6 +29,7 @@
 | `OPENROUTER_BASE_URL` | 覆盖 API 根（自建代理 / 本地回放） | `https://openrouter.ai/api/v1`；进程环境缺失时同样读 `$HOME/.harness/providers.env` |
 | `FFMPEG` | 音频归一化用的 ffmpeg | 先探 `/usr/bin/ffmpeg`，再探 `PATH`；**第一个能 `-version` 成功的**才算数 |
 | `FFPROBE` | 视频写入前校验用的 ffprobe | 同上顺序（`/usr/bin/ffprobe` 优先于 `PATH`） |
+| `CHROME_CDP_URL` | Flow **live** 运行前的本机 CDP 端点 | `http://127.0.0.1:9222`（本机默认）；只有 loopback 端点会触发一次 `systemctl --user start chrome-cdp.service` + 3 s 重探，仍失败即非 0；非 loopback 只探不动本机服务 |
 
 探测顺序固定为 `显式参数 → 环境变量 → /usr/bin → PATH`。本机 Homebrew 的
 `ffmpeg`/`ffprobe` 因缺 `libx265.so.216` 起不来，所以会被跳过，实际使用
@@ -49,8 +50,12 @@ OpenRouter 客户端重试策略（`custom/tools/common/openrouter_client.py`）
 `Bearer` 头再打印。
 
 Flow 三个工具是注册表里的 `BaseTool`（`flow_image`/`flow_video`/`flow_music`），
-命令行入口是 `custom/plugins/studiowright/cli.py`。OpenRouter 三个工具是
-**独立 argparse 脚本，不是 BaseTool**，不出现在 `registry` 里。
+命令行入口是 `custom/plugins/studiowright/cli.py`。三者的 **live** 运行（非
+`--plan` / `--dry-run`）在提交前统一过一道 CDP 预检
+（`custom/tools/common/chrome_cdp.py`，见 `custom/docs/FLOW.md`）；`--help`、
+`--plan`、`--dry-run` 不触发它，预检失败会先于提交报错（退出码 1）。
+OpenRouter 三个工具是 **独立 argparse 脚本，不是 BaseTool**，不出现在
+`registry` 里。
 
 ---
 
@@ -285,6 +290,7 @@ python3 -m custom.tools.video.openrouter_video \
 | --- | --- |
 | OpenRouter 共用客户端 | `custom/tools/common/openrouter_client.py` |
 | Flow CLI / `sw` 调用层 | `custom/plugins/studiowright/cli.py`、`client.py` |
+| Flow 本机 CDP 预检 + unit 模板 | `custom/tools/common/chrome_cdp.py`、`custom/config/systemd/chrome-cdp.service` |
 | Flow 免侵入说明 | `custom/docs/FLOW.md` |
-| 契约自检 | `custom/tests/test_flow_contract.py`、`custom/tests/test_openrouter_*.py` |
+| 契约自检 | `custom/tests/test_flow_contract.py`、`custom/tests/test_flow_cdp_preflight.py`、`custom/tests/test_openrouter_*.py` |
 | 本地部署 | `custom/docs/LOCAL_DEPLOY.md` |

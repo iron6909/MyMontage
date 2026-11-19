@@ -19,6 +19,13 @@ Every run prints ONE standard status object and exits 0 (ok/dry_run/plan) or 1
 with `sw` absent. `--dry-run` lets the tool dry-run itself (client-side for
 image/music; video asks Flow for the credit quote and submits nothing).
 
+A live run (no `--plan`, no `--dry-run`) first passes the loopback CDP
+preflight in `custom/tools/common/chrome_cdp.py`: when `CHROME_CDP_URL` — or the
+local default `http://127.0.0.1:9222` — does not answer, the preflight starts
+`chrome-cdp.service` once, waits ~3 s and probes again. Still dead is a
+non-zero `status: "error"` naming the redacted endpoint. A non-loopback
+`CHROME_CDP_URL` is never "fixed" by starting the local unit.
+
 Retries only happen on a timeout — matching each tool's
 RetryPolicy(retryable_errors=["timeout"]). A retry re-submits a job, which can
 spend credits twice, so the default is 0.
@@ -32,6 +39,9 @@ import time
 from importlib import import_module
 from pathlib import Path
 from typing import Any
+
+# pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
+from custom.tools.common.chrome_cdp import ensure_cdp
 
 # tool name -> "module:class". Imported lazily so `--help` works even when an
 # optional dependency of one tool is missing.
@@ -169,6 +179,13 @@ def run(name: str, args: argparse.Namespace) -> int:
 
     if args.plan:
         return _emit(_status("plan", tool, inputs, command=tool.build_command(inputs)))
+
+    # Live runs drive a browser over CDP. --plan/--dry-run never reach this, and
+    # a non-loopback CHROME_CDP_URL is reported instead of being started locally.
+    if not args.dry_run:
+        cdp = ensure_cdp()
+        if not cdp.ok:
+            return _emit(_status("error", tool, inputs, error=cdp.error, cdp=cdp.as_dict()))
 
     attempts = 0
     started = time.time()
