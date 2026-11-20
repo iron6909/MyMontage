@@ -287,9 +287,12 @@ python3 -m custom.tools.video.openrouter_video \
   `sw --seed`/`--cover`（音乐）都未在本仓 CLI 暴露。
 - fal / Harness：本仓没有安装它们的 Bot 插件，只按只读方式参照本地
   `tools/` 源码契约。
-- Piper TTS 补丁：`custom/patches/piper_tts_speaker.patch` 由
-  `custom/scripts/setup_local.sh` 在运行期套用，**不是本批六工具之一**，也不
-  会注册成工具（`custom/tools/loader.py` 里的 `_SKIP`）。
+
+## 本地 Piper
+
+本地 Piper 使用 `mymontage_piper_tts`。在调用进程内执行
+`custom.tools.loader.load()` 后即可从工具注册表选用。安装和样例见
+[本地部署](../docs/LOCAL_DEPLOY.md#local-piper-provider)。
 
 ## 相关文件
 

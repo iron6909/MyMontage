@@ -181,6 +181,6 @@ make -f custom/Makefile sw-tools          # 确认三个工具都已注册
 | `custom/tools/_sw.py` | `custom/plugins/studiowright/client.py` |
 
 仓内没有任何地方再引用旧路径，因此旧文件直接删除，没有留两份业务代码。
-`custom/tools/audio/` 现在是包（会被 `registry.discover` 走查），
-`custom/tools/loader.py` 显式跳过其中的 `piper_tts.py`——那是 piper 补丁的
-参照副本，注册它会用快照顶替真正的上游 provider。
+`custom.tools.loader.load()` 由消费进程显式调用，注册三个 Flow 工具和本地
+`mymontage_piper_tts`。在仓库根目录用 `make -f custom/Makefile sw-tools` 检查
+Flow 注册结果。上游默认 `registry.discover()` 负责上游工具。

@@ -1,25 +1,28 @@
-# MyMontage 免侵入式二开宪章 (Zero-Intrusion Development Rules)
+# MyMontage 下游开发与集成规则
 
-本项目是 `OpenMontage` 的下游派生仓库。为确保随时执行 `git pull upstream main` 零冲突，所有 Agent（Pi / agy）在本仓库开发时必须遵守以下五条死律：
+MyMontage 以 OpenMontage 为上游。先读仓库根目录的 `AGENT_GUIDE.md`，视频生产继续使用其管线和审批规则。以下规则适用于 MyMontage 的开发与上游同步。
 
-## 1. 上游原生文件 100% 只读铁律 (Zero Upstream Modification)
-- **严禁直接修改或删除**任何 `OpenMontage` 上游已追踪的文件（包括但不限于根目录 `AGENTS.md`、`SKILL.md`、`Makefile`、`.gitignore`、`config.yaml`、`requirements.txt`、`tools/**` 及 `remotion-composer` 下的 `Root.tsx`、`tsconfig.json`）。
-- 仓库与 `upstream/main` 的 Git 差异中，`custom/` 目录以外的文件变更数必须为 **0**。
+## 提交边界
 
-## 2. 四大定制资产强制归口 `custom/` 命名空间
-1. **工具 (Tools)**：自研 TTS、逐词时间戳对齐、视觉/音频处理工具一律放入 `custom/tools/<domain>/`。若需修复上游原生工具 Bug，优先在 `custom/tools/` 编写 Wrapper；若必须打补丁，须将 `.patch` 存入 `custom/patches/`，由 `custom/scripts/setup_local.sh` 在运行期自动 `git apply` 并执行 `git update-index --skip-worktree <上游文件>`，严禁将修改提交进 Git。
-2. **插件 (Plugins)**：自研管线插件与外部 API 路由一律放入 `custom/plugins/<name>/`，通过 CLI 参数或环境变量挂载，严禁修改上游 `__init__.py` 或核心注册表。
-3. **剧本 (Playbooks)**：英语微短剧等领域的分镜模板、叙事规则与系统提示词一律放入 `custom/playbooks/<genre>/`，严禁修改上游默认剧本模板。
-4. **风格 (Styles)**：字幕动效、逐词高亮样式、配色与画幅预设一律放入 `custom/styles/<style_name>/`，通过配置参数注入渲染器，严禁硬编码侵入 `Root.tsx`。
+- 常规开发只在 `custom/` 内新增、修改或删除下游文件。仓根唯一的下游例外是 GitHub Actions 入口 `.github/workflows/mymontage-ci.yml`，验证逻辑放在 `custom/`。同步时，上游已跟踪的文件必须与选定基线一致。
+- 上游修复优先使用 `custom/` 中的适配器，或向上游提交。开发、同步和 CI 工作树不得通过 `git apply` 改写上游文件，也不得使用 `skip-worktree` 或 `assume-unchanged` 隐藏修改。现有 Piper 修复已迁移到 `mymontage_piper_tts`。[旧检出迁移说明](docs/LOCAL_DEPLOY.md#retire-the-legacy-working-tree-patch)
+- `.task/`、`out/`、`projects/` 等运行目录和其中的证据不入库，包括 `custom/` 下的同名目录。`projects/` 已由上游忽略。开发机可将 `.task/` 和 `out/` 加入本地 `.git/info/exclude`。CI 检查候选文件和 PR 新增的下游提交，忽略配置只用于减少本地噪音。
+- `custom/config/` 只提交配置模板及占位符。生产凭据由部署环境提供。
 
-## 3. 依赖、配置与命令入口外挂化
-- 新增依赖写入 `custom/requirements.txt`，新增配置写入 `custom/config/`，新增快捷命令写入 `custom/Makefile`（使用 `make -f custom/Makefile <target>` 调用）。
+## 同步与合入
 
-## 4. 运行产物与验证证据零入库
-- `.task/`、`out/`、`projects/` 仅通过本地 `.git/info/exclude` 忽略，**严禁将 `.task/evidence/` 下的任何日志或截图 `git add` 提交入库**。
+- [固定上游基线](strategy/policy.json)记录已经集成的 OpenMontage 完整 SHA。普通 PR 使用目标分支上的基线，基线变更走专门的上游同步 PR。
+- 同步从干净的 MyMontage `main` 开始，获取并固定 `upstream/main` 的候选 SHA，在独立分支合并，再在同一个 PR 更新 `policy.json`。同步 PR 使用保留上游提交祖先关系的合并方式。
+- 合入 `main` 的 PR 必须通过 GitHub Actions 的 `MyMontage integration` 检查。本地可在干净检出运行 `make -f custom/Makefile ci BASE_SHA=<目标分支完整SHA>`，同步时另传 `UPSTREAM_SHA=<已确认的上游完整SHA>`。验证失败时保留原基线，在同步分支修复后重跑。[同步步骤及 CI 接线](strategy/README.md)
 
-## 5. 索引（从这里去哪里找）
-- **工具调用契约**：`custom/tools/REGISTRY.md` —— Flow 图像/视频/音乐 + OpenRouter 图像/语音/视频六个工具的完整命令、必需参数、已核对模型与能力限制。写命令前先读它，不要凭记忆或旧文档。
-- **新增依赖**：`custom/requirements.txt`。**新增配置**：`custom/config/`（示例 `custom/config/providers.example.yaml`，只允许占位符，禁止写入真实密钥）。
-- **快捷命令**：`custom/Makefile`（`make -f custom/Makefile <target>`）。
-- **专项说明**：Flow 接入 `custom/docs/FLOW.md`；本地部署 `custom/docs/LOCAL_DEPLOY.md`。
+## 定制资产和接入点
+
+| 资产 | 路径 | 接入和验证 |
+|---|---|---|
+| 工具 | `custom/tools/<domain>/` | Flow 和 Piper 由使用它们的进程显式调用 `custom.tools.loader.load()` 注册。OpenRouter 使用独立模块 CLI。新增工具要声明接入方式、避免注册名冲突，并补对应的离线契约检查。[调用契约](tools/REGISTRY.md) |
+| 插件 | `custom/plugins/<name>/` | 提供实际调用的模块入口、CLI 参数或环境变量。例如 `python -m custom.plugins.studiowright`，由 Flow 的离线命令契约验证。 |
+| 剧本 | `custom/playbooks/<genre>/` | 新增剧本要在所属管线的输入或适配器中明确指定模板路径，并从该入口验证读取与生成的阶段产物。 |
+| 风格 | `custom/styles/<style_name>/` | 新增风格要由下游配置或调用方传入渲染器。YAML 风格可由调用方通过 `load_playbook(..., styles_dir=...)` 显式加载。使用实际渲染入口验证样式配置生效。 |
+| 依赖和命令 | `custom/requirements.txt`、`custom/Makefile` | 本地安装与 CI 安装同时读取上游和下游依赖。从仓根用 `make -f custom/Makefile <target>` 调用。 |
+
+部署入口见 [本地 CPU 部署](docs/LOCAL_DEPLOY.md)与 [Flow 部署](docs/FLOW.md)。

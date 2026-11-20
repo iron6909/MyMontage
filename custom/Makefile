@@ -1,4 +1,4 @@
-# Local-only (CPU, key-free) deploy helpers. Run from the REPOSITORY ROOT:
+# MyMontage deployment and CI helpers. Run from the repository root:
 #   make -f custom/Makefile local-setup
 #   make -f custom/Makefile sample
 # Docs: custom/docs/LOCAL_DEPLOY.md
@@ -17,13 +17,16 @@ USER_UNIT_DIR   ?= $(HOME)/.config/systemd/user
 ROOT_GUARD := @[ "$$(pwd -P)" = "$(REPO_ROOT)" ] || { echo "ERROR: run this from the repository root: cd $(REPO_ROOT) && make -f custom/Makefile <target>"; exit 1; }
 
 .DEFAULT_GOAL := help
-.PHONY: help local-setup sample \
+.PHONY: help ci local-setup sample \
         sw-install sw-auth-flow sw-auth-music sw-hide sw-doctor sw-status sw-tools \
         flow flow-help sw-credentials chrome-cdp-check chrome-cdp-install
 
 help:
+	@echo "  make -f custom/Makefile ci BASE_SHA=<target-branch SHA>"
+	@echo "  Add UPSTREAM_SHA=<OpenMontage SHA> for a sync candidate."
+	@echo ""
 	@echo "custom/ - local-only deploy (no GPU, no API keys)"
-	@echo "  make -f custom/Makefile local-setup     # .venv + requirements + Piper voice + patch"
+	@echo "  make -f custom/Makefile local-setup     # .venv + requirements + Piper voice"
 	@echo "  make -f custom/Makefile sample           # render out/sample.mp4 with local providers"
 	@echo ""
 	@echo "StudioWright / Google Flow tools:"
@@ -45,7 +48,13 @@ help:
 	@echo "  make -f custom/Makefile flow ARGS=\"image --prompt 'a red fox' --dry-run\""
 	@echo "  make -f custom/Makefile flow ARGS=\"video --prompt 'drone shot' --plan\""
 
-# .venv + requirements.txt + Piper voice + working FFmpeg + local Piper patch.
+ci:
+	$(ROOT_GUARD)
+	@test -n "$(BASE_SHA)" || { echo "ERROR: set BASE_SHA to the trusted target branch commit"; exit 1; }
+	"$(PYTHON)" -B "$(CUSTOM_DIR)/strategy/verify.py" --require-clean --base "$(BASE_SHA)" $(if $(UPSTREAM_SHA),--upstream "$(UPSTREAM_SHA)")
+	PATH="$(abspath $(dir $(PYTHON))):$$PATH" $(MAKE) -f Makefile lint test RUN_PYTHON="$(PYTHON)" VENV_DIR="$(VENV_DIR)"
+
+# .venv + requirements + Piper voice + working FFmpeg.
 # Idempotent: every step checks before acting.
 local-setup:
 	$(ROOT_GUARD)

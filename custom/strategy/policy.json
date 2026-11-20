@@ -1,5 +1,5 @@
 {
   "baseline": "2e003e65fa99a0f329478a2c1cdcf26bc481933a",
-  "allow": ["custom"],
+  "allow": ["custom", ".github/workflows"],
   "required_file": "custom/AGENTS.md"
 }
