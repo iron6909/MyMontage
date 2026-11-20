@@ -11,6 +11,6 @@
 #   - `tools.base_tool` / registry  -> ../requirements.txt (pyyaml, pydantic, ...)
 #   - ffmpeg / ffprobe binaries     -> system packages; probed via FFMPEG / FFPROBE
 #   - StudioWright (`sw`) CLI       -> `make -f custom/Makefile sw-install` (uv tool)
-#   - Piper voice + upstream patch  -> `make -f custom/Makefile local-setup`
+#   - Piper voice + the Piper CLI   -> `make -f custom/Makefile local-setup`
 #
 # Add a real pin below only when a file in custom/ actually imports it.

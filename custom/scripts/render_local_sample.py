@@ -17,6 +17,10 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from custom.tools.audio.piper_tts import PiperTTS
 
 # custom/scripts/ -> up three levels: scripts -> custom -> repo root.
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -140,26 +144,19 @@ def render_card(scene: dict, index: int, font_path: str, path: Path) -> None:
 
 def resolve_voice(voice: str) -> str:
     """Piper treats a bare name as "download into cwd"; hand it the real file."""
-    for base in (Path.home() / ".piper" / "models", Path.cwd()):
+    voice_dir = Path(os.environ.get("PIPER_VOICES_DIR") or Path.home() / ".piper" / "models").expanduser()
+    for base in (voice_dir, Path.cwd()):
         candidate = base / f"{voice}.onnx"
         if candidate.is_file():
-            return str(candidate)
+            return str(candidate.resolve())
     raise SystemExit(
-        f"ERROR: voice {voice!r} not found in ~/.piper/models. "
+        f"ERROR: voice {voice!r} not found in {voice_dir}. "
         "Run custom/scripts/setup_local.sh first."
     )
 
 
-def synthesise(text: str, voice: str, path: Path) -> None:
+def synthesise(tool: PiperTTS, text: str, voice: str, path: Path) -> None:
     """Local TTS through the registered piper tool (no network, no key)."""
-    from tools.tool_registry import registry
-
-    registry.ensure_discovered()
-    tool = registry.get("piper_tts")
-    if tool is None:
-        raise SystemExit(
-            "ERROR: piper_tts is not registered. Run custom/scripts/setup_local.sh first."
-        )
     result = tool.execute({"text": text, "model": resolve_voice(voice), "output_path": str(path)})
     if not result.success:
         raise SystemExit(f"ERROR: local TTS failed: {result.error}")
@@ -179,6 +176,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--font", default=None, help="card font path (default: first installed CJK font)")
     args = parser.parse_args(argv)
 
+    from custom.tools.audio.piper_tts import PiperTTS
+    from custom.tools.loader import load
+    from tools.tool_registry import registry
+
+    load()
+    tool = registry.get(PiperTTS.name)
+    if not isinstance(tool, PiperTTS):
+        raise SystemExit(f"ERROR: {PiperTTS.name} is not registered.")
+
     out_path = Path(args.out).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     ffmpeg = pick_binary("FFMPEG", "ffmpeg")
@@ -196,7 +202,7 @@ def main(argv: list[str] | None = None) -> int:
         for index, scene in enumerate(SCENES):
             wav = work / f"seg{index}.wav"
             print(f"[{index + 1}/{len(SCENES)}] TTS + card: {scene['title']}")
-            synthesise(scene["text"], args.voice, wav)
+            synthesise(tool, scene["text"], args.voice, wav)
             durations.append(probe_duration(ffprobe, wav))
             render_card(scene, index, font_path, work / f"card{index}.png")
 

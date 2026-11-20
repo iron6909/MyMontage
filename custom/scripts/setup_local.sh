@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Local-only OpenMontage setup: in-repo venv, requirements.txt (no GPU extras),
-# a free offline TTS voice, a working FFmpeg, and the local Piper speaker patch.
+# Local-only OpenMontage setup: in-repo venv, CPU dependencies,
+# a free offline TTS voice, and a working FFmpeg.
 # No API keys, no paid providers. Safe to re-run: every step checks before it acts.
 #
 # Run from the repository root:
@@ -15,7 +15,7 @@ cd "$ROOT_DIR"
 VENV_DIR="${VENV_DIR:-$ROOT_DIR/.venv}"
 VENV_PY="$VENV_DIR/bin/python"
 PIPER_VOICE="${LOCAL_PIPER_VOICE:-zh_CN-huayan-medium}"
-# piper-tts 1.2.0 is the release whose CLI matches tools/audio/piper_tts.py
+# piper-tts 1.2.0 is the release whose CLI matches custom/tools/audio/piper_tts.py
 # (--data-dir/--sentence-silence/--speaker). 1.3.0+ dropped --data-dir.
 PIPER_TTS_SPEC="${PIPER_TTS_SPEC:-piper-tts==1.2.0}"
 PIPER_VOICES_DIR="${PIPER_VOICES_DIR:-$HOME/.piper/models}"
@@ -26,68 +26,6 @@ PYTHON_MIN="3.10"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
-
-# ---- 0. Local Piper speaker patch ----------------------------------------
-# Upstream tools/audio/piper_tts.py always passes `--speaker <id>`, which makes
-# piper emit an `sid` tensor that single-speaker voices (e.g.
-# zh_CN-huayan-medium) reject with "Invalid input name: sid". The fix lives in
-# custom/patches/ and is mounted into the tracked file, then hidden from
-# `git status` with skip-worktree.
-#
-# skip-worktree only hides the local edit from git — it does NOT guarantee a
-# conflict-free pull when upstream touches the same lines. See the "Keeping the
-# Piper patch in sync" section of custom/docs/LOCAL_DEPLOY.md.
-PIPER_FILE="tools/audio/piper_tts.py"
-PIPER_PATCH="custom/patches/piper_tts_speaker.patch"
-PIPER_PATCHED="custom/tools/audio/piper_tts.py"
-# Pristine upstream blob the patch was generated against (2e003e6 / ce284cf~1).
-PIPER_BASE_BLOB="41595955859179707af64b5d2a7694dc6aa5f72b"
-
-piper_ensure_skip_worktree() {
-  git ls-files -v -- "$PIPER_FILE" | grep -q '^S' \
-    || git update-index --skip-worktree -- "$PIPER_FILE"
-}
-
-mount_piper_patch() {
-  git rev-parse --git-dir >/dev/null 2>&1 || die "Not a git worktree: $ROOT_DIR"
-  [ -f "$PIPER_FILE" ] || die "Missing $PIPER_FILE in $ROOT_DIR."
-  [ -f "$PIPER_PATCH" ] && [ -f "$PIPER_PATCHED" ] \
-    || die "Missing $PIPER_PATCH or $PIPER_PATCHED."
-
-  if cmp -s "$PIPER_FILE" "$PIPER_PATCHED"; then
-    log "Piper speaker patch already applied; ensuring skip-worktree"
-    piper_ensure_skip_worktree
-    return 0
-  fi
-
-  head_blob="$(git rev-parse "HEAD:$PIPER_FILE")" \
-    || die "Cannot read HEAD:$PIPER_FILE — is this a full checkout?"
-  if [ "$head_blob" != "$PIPER_BASE_BLOB" ]; then
-    die "refusing to patch $PIPER_FILE: HEAD already carries a different version
-     (blob $head_blob, expected upstream $PIPER_BASE_BLOB), so upstream probably
-     changed it. Do not force the patch. Rebase/merge, then either re-mount the
-     patch by hand or (if upstream fixed the speaker bug itself) drop it."
-  fi
-  if ! git show "HEAD:$PIPER_FILE" | cmp -s - "$PIPER_FILE"; then
-    die "refusing to patch $PIPER_FILE: the working copy is neither the upstream
-     original nor the patched copy — it has other local edits.
-     Restore it first, then re-run:
-       git update-index --no-skip-worktree -- $PIPER_FILE
-       git checkout HEAD -- $PIPER_FILE
-       bash custom/scripts/setup_local.sh"
-  fi
-
-  log "Applying $PIPER_PATCH (local only, never committed)"
-  git apply "$PIPER_PATCH" \
-    || die "$PIPER_PATCH did not apply. Upstream changed this file; resolve it by
-     hand against $PIPER_PATCHED instead of forcing the patch."
-  cmp -s "$PIPER_FILE" "$PIPER_PATCHED" \
-    || die "$PIPER_FILE does not match $PIPER_PATCHED after applying the patch."
-  piper_ensure_skip_worktree
-  log "  $PIPER_FILE patched; skip-worktree set so git treats it as unmodified"
-}
-
-mount_piper_patch
 
 # pip_install <args...>: try the user's configured index, then a fallback index.
 # Mirrors do go down (a stale pip.conf can point at a dead host), and that must
@@ -125,9 +63,9 @@ else
 fi
 
 # ---- 2. Python dependencies ----------------------------------------------
-log "Installing requirements.txt (CPU only; requirements-gpu.txt is not used)"
+log "Installing upstream and custom CPU dependencies"
 pip_install --upgrade pip >/dev/null
-pip_install -r "$ROOT_DIR/requirements.txt"
+pip_install -r "$ROOT_DIR/requirements.txt" -r "$ROOT_DIR/custom/requirements.txt"
 
 # ---- 3. Local TTS --------------------------------------------------------
 if [ -x "$VENV_DIR/bin/piper" ] && "$VENV_DIR/bin/piper" --help 2>&1 | grep -q -- '--data-dir'; then
@@ -156,7 +94,7 @@ fetch_file() {
   mv "$dest.part" "$dest"
 }
 
-if [ -s "$PIPER_VOICES_DIR/$PIPER_VOICE.onnx" ]; then
+if [ -s "$PIPER_VOICES_DIR/$PIPER_VOICE.onnx" ] && [ -s "$PIPER_VOICES_DIR/$PIPER_VOICE.onnx.json" ]; then
   log "Piper voice already present: $PIPER_VOICES_DIR/$PIPER_VOICE.onnx"
 else
   command -v curl >/dev/null 2>&1 || die "curl is required to download the Piper voice."
@@ -196,7 +134,9 @@ esac
 log "Checking which providers are configured (free/local only by design)"
 PATH="$VENV_DIR/bin:$PATH" "$VENV_PY" - <<'PY' || true
 from tools.tool_registry import registry
+from custom.tools.loader import load
 registry.discover()
+load()
 summary = registry.provider_menu_summary()
 print("  composition runtimes:", summary.get("composition_runtimes"))
 for cap in summary.get("capabilities", []):
