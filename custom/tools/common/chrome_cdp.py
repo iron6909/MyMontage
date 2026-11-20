@@ -1,18 +1,7 @@
-"""Loopback CDP preflight shared by the Google Flow tools.
+"""Check the optional harness Chrome DevTools service and report StudioWright's own port.
 
-Flow live runs drive a browser over the DevTools protocol. The harness expects
-that browser to be a user-session Chrome on a loopback port — one systemd user
-unit, `chrome-cdp.service` (template: `custom/config/systemd/chrome-cdp.service`,
-installed by `make -f custom/Makefile chrome-cdp-install`). This module is the
-single gate the Flow entry (`custom/plugins/studiowright/cli.py`) passes through
-before it submits anything:
-
-    from custom.tools.common.chrome_cdp import ensure_cdp
-    status = ensure_cdp()          # status.error is already redacted
-    if not status.ok:
-        ...
-
-    python3 -m custom.tools.common.chrome_cdp    # same check, JSON + exit code
+`python3 -m custom.tools.common.chrome_cdp` checks the harness endpoint independently.
+StudioWright manages its profile and browser separately.
 
 Rules encoded here:
 
@@ -172,7 +161,7 @@ def sw_debug_port(profile: str | None = None) -> int:
 
 def sw_port_status(profile: str | None = None, probe=probe_cdp) -> dict:
     """Probe sw's port. Injected probe: tests never open a socket."""
-    name = profile or SW_DEFAULT_PROFILE
+    name = profile or os.environ.get("STUDIOWRIGHT_PROFILE") or SW_DEFAULT_PROFILE
     port = sw_debug_port(name)
     url = f"http://127.0.0.1:{port}"
     return {"profile": name, "port": port, "url": url, "reachable": bool(probe(url))}

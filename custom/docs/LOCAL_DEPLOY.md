@@ -157,7 +157,7 @@ Expect one `video` stream (1280×720, h264) and one `audio` stream (aac), with
 
 Google Flow image / video / music generation is a separate, key-free path via the
 `sw` CLI: see [FLOW.md](FLOW.md) for the entry points
-(`python3 -m custom.plugins.studiowright ...`), the verified `sw` 0.2.13 contract,
+(`python3 -m custom.plugins.studiowright ...`), the pinned StudioWright fork,
 and the credential-presence check (`make -f custom/Makefile sw-credentials`).
 It needs a signed-in Chrome; nothing on this page changes because of it.
 

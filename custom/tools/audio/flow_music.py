@@ -5,7 +5,7 @@ required. It consumes credits from your own Google Flow Music subscription.
 
 Prerequisites
 -------------
-1. Install StudioWright:   uv tool install git+https://github.com/umutkocak/studiowright
+1. Install StudioWright:   make -f custom/Makefile sw-install
 2. Authenticate once:      sw auth login --url https://www.flowmusic.app/
 3. Keep Chrome running:    sw window hide  (never minimize)
 
@@ -20,18 +20,16 @@ with loopback kept out of `HTTP(S)_PROXY`.
 from __future__ import annotations
 
 import shutil
-import subprocess
-import time
 from pathlib import Path
 from typing import Any
 
 # pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
-from custom.plugins.studiowright.client import output_files, parse_sw_json
-
-# pi-lens-ignore: reportMissingImports -- resolved from the repo root
-from custom.tools.common.proxy_env import sw_env
-
-# pi-lens-ignore: reportMissingImports -- resolved from the repo root
+from custom.plugins.studiowright.client import (
+    invoke,
+    prompt_command,
+    prompt_text,
+    timeout_seconds,
+)
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -59,25 +57,28 @@ def _sw_binary() -> str | None:
 
 
 def _out_dir(inputs: dict[str, Any]) -> Path:
-    return Path(inputs.get("output_path") or "out/flow_music")
+    return Path(inputs.get("output_path") or "out/flow_music").expanduser()
 
 
 def _mm_ss_to_seconds(ts: str) -> int:
     """Convert 'M:SS' string to total seconds, e.g. '1:30' -> 90."""
     parts = ts.strip().split(":")
     if len(parts) == 2:
-        return int(parts[0]) * 60 + int(parts[1])
+        minutes, seconds = map(int, parts)
+        if minutes < 0 or not 0 <= seconds < 60:
+            raise ValueError(f"invalid music time {ts!r}; use M:SS or seconds")
+        return minutes * 60 + seconds
     return int(ts)
 
 
 def _edit_flags(action: str, inputs: dict[str, Any]) -> list[str]:
     """The flags one `sw music <edit>` subcommand accepts, in click's order."""
-    if action in _NEEDS_PROMPT:
-        return ["--prompt", inputs["prompt"]]
+    flags = []
     if action in _NEEDS_RANGE:
-        flags = ["--start", inputs["start"], "--end", inputs["end"]]
-        return flags + (["--prompt", inputs["prompt"]] if inputs.get("prompt") else [])
-    return ["--prompt", inputs["prompt"]] if inputs.get("prompt") else []
+        flags += ["--start", inputs["start"], "--end", inputs["end"]]
+    if action in ("cover", "extend", "replace") and inputs.get("prompt"):
+        flags += ["--prompt", inputs["prompt"]]
+    return flags
 
 
 def _text_flags(action: str, inputs: dict[str, Any]) -> list[str]:
@@ -109,7 +110,7 @@ class FlowMusic(BaseTool):
     dependencies = []
     install_instructions = (
         "Install StudioWright and authenticate for Flow Music:\n"
-        "  uv tool install git+https://github.com/umutkocak/studiowright\n"
+        "  make -f custom/Makefile sw-install\n"
         "  sw auth login --url https://www.flowmusic.app/\n"
         "  sw window hide          # keep Chrome running in background\n"
         "Requires a Google account with an active Flow Music plan."
@@ -158,13 +159,13 @@ class FlowMusic(BaseTool):
 
     input_schema = {
         "type": "object",
-        "required": ["action"],
+
         "properties": {
             "prompt": {
                 "type": "string",
                 "description": (
                     "Music style / mood description (e.g. 'moody indie folk, warm male vocal'). "
-                    "Required for action=create and action=cover; unused by the other edits."
+                    "Required for create and cover; optional for extend and replace."
                 ),
             },
             "action": {
@@ -256,7 +257,7 @@ class FlowMusic(BaseTool):
     resource_profile = ResourceProfile(
         cpu_cores=1, ram_mb=256, vram_mb=0, disk_mb=100, network_required=True
     )
-    retry_policy = RetryPolicy(max_retries=1, retryable_errors=["timeout"])
+    retry_policy = RetryPolicy()
     idempotency_key_fields = ["prompt", "model", "length", "lyrics", "action"]
     side_effects = [
         "opens/uses Google Chrome browser session",
@@ -290,135 +291,57 @@ class FlowMusic(BaseTool):
         return 30.0 + secs / 4.0
 
     def build_command(self, inputs: dict[str, Any]) -> list[str]:
-        """The exact `sw` argv for these inputs (used by --plan and by execute)."""
         action = inputs.get("action", "create")
-        song = inputs.get("song_id") or "last"
-        if action == "create":
-            head = ["music", inputs["prompt"],
-                    "--model", inputs.get("model", "lyria-3.5"),
-                    "--length", inputs.get("length", "1:30")]
-        elif action == "stems":
-            head = ["music", "stems", song]
-        else:
-            head = ["music", action, song, *_edit_flags(action, inputs)]
+        if action not in ("create", "stems", *_EDIT_ACTIONS):
+            raise ValueError(f"unknown music action {action!r}")
+        if action in _NEEDS_PROMPT:
+            prompt_text(inputs)
+        if action in _NEEDS_RANGE:
+            if not inputs.get("start") or not inputs.get("end"):
+                raise ValueError(f"action={action} needs both start and end, such as 0:05 and 0:35")
+            start = _mm_ss_to_seconds(inputs["start"])
+            end = _mm_ss_to_seconds(inputs["end"])
+            if start < 0 or end <= start:
+                raise ValueError("the end time must be after a nonnegative start time")
+        fmt = inputs.get("format", "mp3")
+        if fmt not in ("mp3", "wav", "m4a"):
+            raise ValueError("music format must be mp3, wav or m4a")
+        timeout_seconds(inputs, 1260)
         cmd = [_sw_binary() or "sw"]
         if inputs.get("profile"):
             cmd += ["--profile", inputs["profile"]]
-        return cmd + head + [
-            "--format", inputs.get("format", "mp3"),
-            *_text_flags(action, inputs),
-            "--out", str(_out_dir(inputs)),
-            "--json",
-        ]
+        cmd += ["music", action, "--format", fmt, *_text_flags(action, inputs),
+                "--out", str(_out_dir(inputs)), "--json"]
+        if action == "create":
+            length = inputs.get("length", "1:30")
+            if not 60 <= _mm_ss_to_seconds(length) <= 180:
+                raise ValueError("music length must be between 1:00 and 3:00")
+            cmd += ["--model", inputs.get("model", "lyria-3.5"), "--length", length]
+            return prompt_command(cmd, inputs["prompt"])
+        cmd += _edit_flags(action, inputs)
+        return prompt_command(cmd, inputs.get("song_id") or "last")
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        action = inputs.get("action", "create")
-        prompt = inputs.get("prompt")
-        song_id = inputs.get("song_id")
+        try:
+            cmd = self.build_command(inputs)
+            action = inputs.get("action", "create")
+            timeout = timeout_seconds(inputs, 1980 if action == "stems" else 1380)
+        except (TypeError, ValueError) as exc:
+            return ToolResult(success=False, error=str(exc))
         model = inputs.get("model", "lyria-3.5")
-        fmt = inputs.get("format", "mp3")
-
-        if action in _NEEDS_PROMPT and not prompt:
-            return ToolResult(success=False, error=f"action={action} needs a prompt.")
-        if action in _NEEDS_RANGE and not (inputs.get("start") and inputs.get("end")):
-            return ToolResult(
-                success=False,
-                error=f"action={action} needs both start and end (M:SS), e.g. --start 0:05 --end 0:35.",
-            )
-        if action != "create" and action not in _EDIT_ACTIONS and action != "stems":
-            return ToolResult(success=False, error=f"unknown action {action!r}.")
-
-        cmd = self.build_command(inputs)
-
-        # sw music has no remote dry-run pricing; handle client-side.
+        metadata = {
+            "provider": self.provider, "model": model, "prompt": inputs.get("prompt"),
+            "action": action, "song_id": inputs.get("song_id") or ("last" if action != "create" else None),
+            "length": inputs.get("length", "1:30"), "format": inputs.get("format", "mp3"),
+        }
         if inputs.get("dry_run"):
             return ToolResult(
-                success=True,
-                data={
-                    "provider": "google_flow_music",
-                    "model": model,
-                    "prompt": prompt,
-                    "action": action,
-                    "song_id": song_id or ("last" if action != "create" else None),
-                    "format": fmt,
-                    "dry_run": True,
-                    "command": cmd,
-                    "message": "Preflight check passed.",
-                },
-                cost_usd=None,
-                duration_seconds=0.0,
-                model=model,
+                success=True, data={**metadata, "dry_run": True, "command": cmd},
+                cost_usd=None, model=model,
             )
-
-        sw = _sw_binary()
-        if not sw:
-            return ToolResult(
-                success=False,
-                error="StudioWright (sw) not found. " + self.install_instructions,
-            )
-
-        out_dir = _out_dir(inputs)
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        timeout_s = float(
-            inputs.get("timeout_seconds") or max(180, int(self.estimate_runtime(inputs)) * 3)
-        )
-        start = time.time()
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout_s,
-                env=sw_env(),
-            )
-        except subprocess.TimeoutExpired:
-            return ToolResult(
-                success=False,
-                error=f"flow_music timed out after {timeout_s:.0f}s. "
-                      "Chrome may be minimized — use `sw window hide` instead.",
-            )
-        except Exception as exc:
-            return ToolResult(success=False, error=f"flow_music failed to start: {exc}")
-
-        stdout = result.stdout.strip()
-        stderr = result.stderr.strip()
-
-        if result.returncode != 0:
-            return ToolResult(
-                success=False,
-                error=f"sw music exited {result.returncode}: {stderr or stdout}",
-            )
-
-        data = parse_sw_json(stdout)
-        outputs = output_files(data, out_dir, ("*.mp3", "*.wav", "*.m4a"))
-
-        if not outputs:
-            return ToolResult(
-                success=False,
-                error=f"flow_music returned no output files. stdout={stdout!r}",
-            )
-
-        duration_elapsed = round(time.time() - start, 2)
-        return ToolResult(
-            success=True,
-            data={
-                "provider": "google_flow_music",
-                "model": model,
-                "prompt": prompt,
-                "action": action,
-                "length": inputs.get("length", "1:30"),
-                "format": fmt,
-                "output": outputs[0],
-                "outputs": outputs,
-                "sw_data": data,
-                "cost_status": "flow_credits",
-                "command": cmd,
-            },
-            artifacts=outputs,
-            cost_usd=None,
-            duration_seconds=duration_elapsed,
-            model=model,
+        if cmd[0] == "sw":
+            return ToolResult(success=False, error="StudioWright (sw) not found. " + self.install_instructions)
+        return invoke(
+            cmd, kind="music", inputs=inputs, output=_out_dir(inputs), timeout=timeout,
+            metadata=metadata, expected=4 if action == "stems" else 1,
         )

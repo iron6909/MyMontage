@@ -5,7 +5,7 @@ required. It consumes credits from your own Google Flow subscription.
 
 Prerequisites
 -------------
-1. Install StudioWright:   uv tool install git+https://github.com/umutkocak/studiowright
+1. Install StudioWright:   make -f custom/Makefile sw-install
 2. Authenticate once:      sw auth login
 3. Keep Chrome running:    sw window hide  (never minimize)
 
@@ -20,22 +20,16 @@ with loopback kept out of `HTTP(S)_PROXY`.
 from __future__ import annotations
 
 import shutil
-import subprocess
-import time
 from pathlib import Path
 from typing import Any
 
 # pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
 from custom.plugins.studiowright.client import (
-    output_files,
-    parse_sw_json,
-    recover_download,
+    invoke,
+    prompt_command,
+    prompt_text,
+    timeout_seconds,
 )
-
-# pi-lens-ignore: reportMissingImports -- resolved from the repo root
-from custom.tools.common.proxy_env import sw_env
-
-# pi-lens-ignore: reportMissingImports -- resolved from the repo root
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -56,7 +50,7 @@ def _sw_binary() -> str | None:
 
 
 def _out_dir(inputs: dict[str, Any]) -> Path:
-    return Path(inputs.get("output_path") or "out/flow_image")
+    return Path(inputs.get("output_path") or "out/flow_image").expanduser()
 
 
 class FlowImage(BaseTool):
@@ -75,7 +69,7 @@ class FlowImage(BaseTool):
     dependencies = []  # sw binary checked dynamically
     install_instructions = (
         "Install StudioWright and authenticate:\n"
-        "  uv tool install git+https://github.com/umutkocak/studiowright\n"
+        "  make -f custom/Makefile sw-install\n"
         "  sw auth login\n"
         "  sw window hide          # keep Chrome running in background\n"
         "Requires a Google account with an active Flow plan."
@@ -140,8 +134,8 @@ class FlowImage(BaseTool):
             },
             "size": {
                 "type": "string",
-                "enum": ["1K", "2K", "4K"],
-                "default": "2K",
+                "enum": ["original", "1K", "2K", "4K"],
+                "default": "original",
                 "description": "Download resolution. 2K/4K are upscaled by Flow.",
             },
             "ref_paths": {
@@ -155,13 +149,14 @@ class FlowImage(BaseTool):
             },
             "timeout_seconds": {
                 "type": "number",
-                "description": "Abandon the sw call after this many seconds (default: 120 per image).",
+                "description": "StudioWright subprocess time limit in seconds, including downloads.",
             },
             "dry_run": {
                 "type": "boolean",
                 "default": False,
                 "description": "Preflight check, client-side: sw image has no remote pricing call.",
             },
+            "project": {"type": "string", "description": "Google Flow project ID."},
             "profile": {
                 "type": "string",
                 "description": "StudioWright profile name (multi-account).",
@@ -184,7 +179,7 @@ class FlowImage(BaseTool):
     resource_profile = ResourceProfile(
         cpu_cores=1, ram_mb=256, vram_mb=0, disk_mb=200, network_required=True
     )
-    retry_policy = RetryPolicy(max_retries=1, retryable_errors=["timeout"])
+    retry_policy = RetryPolicy()
     idempotency_key_fields = ["prompt", "model", "aspect_ratio", "count"]
     side_effects = [
         "opens/uses Google Chrome browser session",
@@ -211,140 +206,51 @@ class FlowImage(BaseTool):
         return 20.0 * inputs.get("count", 1)
 
     def build_command(self, inputs: dict[str, Any]) -> list[str]:
-        """The exact `sw` argv for these inputs (used by --plan and by execute)."""
+        prompt = prompt_text(inputs)
+        count = inputs.get("count", 1)
+        if type(count) is not int or not 1 <= count <= 4:
+            raise ValueError("image count must be an integer from 1 through 4")
+        size = inputs.get("size", "original")
+        if size not in ("original", "1K", "2K", "4K"):
+            raise ValueError("image size must be original, 1K, 2K or 4K")
+        timeout_seconds(inputs, 360)
         cmd = [_sw_binary() or "sw"]
         if inputs.get("profile"):
             cmd += ["--profile", inputs["profile"]]
         cmd += [
-            "image", inputs["prompt"],
-            "--model", inputs.get("model", "nano-banana-2.1"),
-            "--aspect", inputs.get("aspect_ratio", "16:9"),
-            "--count", str(inputs.get("count", 1)),
-            "--size", inputs.get("size", "2K"),
-            "--out", str(_out_dir(inputs)),
-            "--json",
+            "image", "--model", inputs.get("model", "nano-banana-2.1"),
+            "--aspect", inputs.get("aspect_ratio", "16:9"), "--count", str(count),
+            "--out", str(_out_dir(inputs)), "--json",
         ]
+        if size in ("2K", "4K"):
+            cmd += ["--size", size]
+        if inputs.get("project"):
+            cmd += ["--project", inputs["project"]]
         for ref in inputs.get("ref_paths") or []:
             cmd += ["--ref", ref]
-        return cmd
+        return prompt_command(cmd, prompt)
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        prompt = inputs["prompt"]
+        try:
+            cmd = self.build_command(inputs)
+            count = inputs.get("count", 1)
+            sized = inputs.get("size") in ("2K", "4K")
+            timeout = timeout_seconds(inputs, 360 + (1500 if sized else 60) * count)
+        except (TypeError, ValueError) as exc:
+            return ToolResult(success=False, error=str(exc))
         model = inputs.get("model", "nano-banana-2.1")
-        aspect = inputs.get("aspect_ratio", "16:9")
-        count = inputs.get("count", 1)
-        size = inputs.get("size", "2K")
-        profile = inputs.get("profile")
-        timeout_s = float(inputs.get("timeout_seconds") or 120 * count)
-        cmd = self.build_command(inputs)
-
-        # sw image has no remote dry-run pricing; handle client-side.
+        metadata = {
+            "provider": self.provider, "model": model, "prompt": inputs["prompt"],
+            "aspect_ratio": inputs.get("aspect_ratio", "16:9"),
+        }
         if inputs.get("dry_run"):
             return ToolResult(
-                success=True,
-                data={
-                    "provider": "google_flow",
-                    "model": model,
-                    "prompt": prompt,
-                    "aspect_ratio": aspect,
-                    "dry_run": True,
-                    "command": cmd,
-                    "message": "Preflight check passed.",
-                },
-                cost_usd=None,
-                duration_seconds=0.0,
-                model=model,
+                success=True, data={**metadata, "dry_run": True, "command": cmd},
+                cost_usd=None, model=model,
             )
-
-        sw = _sw_binary()
-        if not sw:
-            return ToolResult(
-                success=False,
-                error="StudioWright (sw) not found. " + self.install_instructions,
-            )
-
-        out_dir = _out_dir(inputs)
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        start = time.time()
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout_s,
-                env=sw_env(),
-            )
-        except subprocess.TimeoutExpired:
-            return ToolResult(
-                success=False,
-                error=f"flow_image timed out after {timeout_s:.0f}s. "
-                      "Chrome may be minimized — use `sw window hide` instead.",
-            )
-        except Exception as exc:
-            return ToolResult(success=False, error=f"flow_image failed to start: {exc}")
-
-        stdout = result.stdout.strip()
-        stderr = result.stderr.strip()
-
-        if result.returncode != 0:
-            # The medium is already generated; only sw's inline download failed.
-            files = recover_download(sw, "image", start, out_dir, size, profile)
-            if files:
-                return ToolResult(
-                    success=True,
-                    data={
-                        "provider": "google_flow",
-                        "model": model,
-                        "prompt": prompt,
-                        "aspect_ratio": aspect,
-                        "output": files[0],
-                        "outputs": files,
-                        "images_generated": len(files),
-                        "dry_run": False,
-                        "recovered": True,
-                        "cost_status": "flow_credits",
-                        "command": cmd,
-                    },
-                    artifacts=files,
-                    cost_usd=None,
-                    duration_seconds=round(time.time() - start, 2),
-                    model=model,
-                )
-            return ToolResult(
-                success=False,
-                error=f"sw image exited {result.returncode}: {stderr or stdout}",
-            )
-
-        data = parse_sw_json(stdout)
-        outputs = output_files(data, out_dir, ("*.jpg", "*.png", "*.webp"))
-
-        if not outputs:
-            return ToolResult(
-                success=False,
-                error=f"flow_image returned no output files. stdout={stdout!r}",
-            )
-
-        duration = round(time.time() - start, 2)
-        return ToolResult(
-            success=True,
-            data={
-                "provider": "google_flow",
-                "model": model,
-                "prompt": prompt,
-                "aspect_ratio": aspect,
-                "output": outputs[0] if outputs else None,
-                "outputs": outputs,
-                "images_generated": len(outputs),
-                "dry_run": False,
-                "sw_data": data,
-                "cost_status": "flow_credits",
-                "command": cmd,
-            },
-            artifacts=outputs,
-            cost_usd=None,
-            duration_seconds=duration,
-            model=model,
+        if cmd[0] == "sw":
+            return ToolResult(success=False, error="StudioWright (sw) not found. " + self.install_instructions)
+        return invoke(
+            cmd, kind="image", inputs=inputs, output=_out_dir(inputs), timeout=timeout,
+            metadata=metadata, expected=count,
         )

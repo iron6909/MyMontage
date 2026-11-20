@@ -12,7 +12,7 @@ checks use `flow.invalid` (RFC 6761) and never resolve it.
 
 What is pinned:
 
-* `--help` / `--plan` / `--dry-run` never run the preflight at all.
+* The Flow CLI leaves the independent harness preflight unused.
 * A dead loopback endpoint gets exactly one `systemctl --user start
   chrome-cdp.service`, one ~3 s wait, a second probe, and then a non-zero exit.
 * A non-loopback `CHROME_CDP_URL` is never "fixed" by starting the local unit.
@@ -155,62 +155,27 @@ def test_remote_url_never_starts_the_local_unit() -> None:
     assert chrome_cdp.ENV_CDP_URL in (status.error or ""), status.error
 
 
-def test_flow_cli_gate_fails_non_zero_without_cdp() -> None:
-    calls: list[dict] = []
+def test_live_flow_uses_its_backend_without_the_harness_endpoint() -> None:
+    from tools.base_tool import ToolResult
 
-    def dead(**kwargs):
-        calls.append(kwargs)
-        return chrome_cdp.CdpStatus(
-            ok=False, url=LOCAL_URL, local=True, probes=2, service_started=True,
-            service_returncode=5,
-            error="local CDP endpoint http://127.0.0.1:9222 did not answer after a 3s retry",
-        )
+    calls = []
 
-    original = cli.ensure_cdp
-    cli.ensure_cdp = dead
-    try:
-        for argv in (["image", "--prompt", "x"],
-                     ["video", "--prompt", "x"],
-                     ["music", "--action", "create", "--prompt", "x"]):
-            buffer = io.StringIO()
-            with contextlib.redirect_stdout(buffer):
-                code = cli.main(argv)
-            report = json.loads(buffer.getvalue())
-            assert code == 1, (argv, report)
-            assert report["status"] == "error" and report["error"], (argv, report)
-            assert report["cdp"]["ok"] is False, (argv, report)
-            assert report["command"] is None, (argv, report)   # nothing was submitted
-    finally:
-        cli.ensure_cdp = original
-    assert len(calls) == 3, calls
+    class Tool:
+        name, provider, model = "flow_image", "google_flow", None
 
+        def execute(self, inputs):
+            calls.append(inputs)
+            return ToolResult(success=False, error="backend was invoked")
 
-def test_flow_cli_gate_skipped_for_help_plan_and_dry_run() -> None:
-    def bomb(**kwargs):
-        raise AssertionError("the CDP preflight must not run for --help/--plan/--dry-run")
-
-    original = cli.ensure_cdp
-    cli.ensure_cdp = bomb
-    try:
-        with contextlib.redirect_stdout(io.StringIO()):
-            try:
-                cli.main(["--help"])
-            except SystemExit as exit_request:
-                assert exit_request.code == 0, exit_request.code
-        for argv in (["image", "--prompt", "x", "--plan"],
-                     ["video", "--prompt", "x", "--plan"],
-                     ["music", "--prompt", "x", "--plan"],
-                     ["image", "--prompt", "x", "--dry-run"],
-                     ["music", "--prompt", "x", "--dry-run"]):
-            buffer = io.StringIO()
-            with contextlib.redirect_stdout(buffer):
-                code = cli.main(argv)
-            report = json.loads(buffer.getvalue())
-            assert code == 0, (argv, report)
-            assert report["status"] in ("plan", "dry_run"), (argv, report)
-            assert report["command"], (argv, report)
-    finally:
-        cli.ensure_cdp = original
+    buffer = io.StringIO()
+    with patch.object(cli, "_tool", return_value=Tool()), \
+            patch.object(chrome_cdp, "ensure_cdp", side_effect=AssertionError("unused endpoint")), \
+            patch.dict(os.environ, {"CHROME_CDP_URL": REMOTE_URL}), \
+            contextlib.redirect_stdout(buffer):
+        code = cli.main(["image", "--prompt", "x"])
+    report = json.loads(buffer.getvalue())
+    assert code == 1 and report["error"] == "backend was invoked", report
+    assert len(calls) == 1, calls
 
 
 def test_unit_template_is_loopback_only_and_secret_free() -> None:
@@ -245,8 +210,7 @@ if __name__ == "__main__":
         test_dead_loopback_starts_the_unit_once_then_succeeds,
         test_dead_loopback_after_retry_is_explicit,
         test_remote_url_never_starts_the_local_unit,
-        test_flow_cli_gate_fails_non_zero_without_cdp,
-        test_flow_cli_gate_skipped_for_help_plan_and_dry_run,
+        test_live_flow_uses_its_backend_without_the_harness_endpoint,
         test_unit_template_is_loopback_only_and_secret_free,
     )
     for check in checks:

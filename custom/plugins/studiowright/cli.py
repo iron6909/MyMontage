@@ -19,16 +19,8 @@ Every run prints ONE standard status object and exits 0 (ok/dry_run/plan) or 1
 with `sw` absent. `--dry-run` lets the tool dry-run itself (client-side for
 image/music; video asks Flow for the credit quote and submits nothing).
 
-A live run (no `--plan`, no `--dry-run`) first passes the loopback CDP
-preflight in `custom/tools/common/chrome_cdp.py`: when `CHROME_CDP_URL` — or the
-local default `http://127.0.0.1:9222` — does not answer, the preflight starts
-`chrome-cdp.service` once, waits ~3 s and probes again. Still dead is a
-non-zero `status: "error"` naming the redacted endpoint. A non-loopback
-`CHROME_CDP_URL` is never "fixed" by starting the local unit.
-
-Retries only happen on a timeout — matching each tool's
-RetryPolicy(retryable_errors=["timeout"]). A retry re-submits a job, which can
-spend credits twice, so the default is 0.
+StudioWright starts or reuses its own Chrome. Failed calls include their exact job ID
+and any known media IDs. Status retries read the same job without another submission.
 """
 
 from __future__ import annotations
@@ -37,14 +29,11 @@ import argparse
 import json
 import time
 from importlib import import_module
-from pathlib import Path
 from typing import Any
 
 # pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
 from custom.tools.common.chrome_cdp import (
-    ensure_cdp,
     looks_like_sw_port_failure,
-    sw_port_note,
     sw_port_status,
 )
 
@@ -70,7 +59,7 @@ def _common(parser: argparse.ArgumentParser, *, require_prompt: bool = True) -> 
     parser.add_argument("--timeout", type=float, default=None,
                         help="seconds before the sw call is abandoned")
     parser.add_argument("--retries", type=int, default=0,
-                        help="extra attempts after a timeout (re-submits: may spend credits)")
+                        help="extra status checks after a timeout for the same job")
     parser.add_argument("--dry-run", action="store_true", dest="dry_run",
                         help="dry run: no submission, no credits")
     parser.add_argument("--plan", action="store_true",
@@ -85,7 +74,8 @@ def _image_parser(sub: argparse.ArgumentParser) -> None:
                      help="nano-banana-2.1 (default) | nano-banana-pro | nano-banana-2-lite")
     sub.add_argument("--aspect", default=None, help="16:9 (default) | 4:3 | 1:1 | 3:4 | 9:16")
     sub.add_argument("--count", type=int, default=None, help="1-4 images (default 1)")
-    sub.add_argument("--size", default=None, help="download size label: 1K | 2K (default) | 4K")
+    sub.add_argument("--size", default=None, help="original (default) | 1K | 2K | 4K")
+    sub.add_argument("--project", help="Google Flow project ID")
     sub.add_argument("--ref", action="append", default=None, dest="refs",
                      help="reference image path or Flow media id (repeatable)")
 
@@ -97,9 +87,10 @@ def _video_parser(sub: argparse.ArgumentParser) -> None:
     sub.add_argument("--duration", type=int, default=None, help="seconds (default 8)")
     sub.add_argument("--aspect", default=None, help="16:9 (default) | 9:16")
     sub.add_argument("--resolution", default=None, help="360p | 720p (default)")
-    sub.add_argument("--size", default=None, help="download size label: 720p | 1080p (default) | 4K")
+    sub.add_argument("--size", default=None, help="original (default) | 720p | 1080p | 4K | 270p")
     sub.add_argument("--start", default=None, dest="start_frame", help="start frame path or media id")
     sub.add_argument("--end", default=None, dest="end_frame", help="end frame path or media id")
+    sub.add_argument("--project", help="Google Flow project ID")
     sub.add_argument("--ref", action="append", default=None, dest="refs",
                      help="ingredient image path or media id (repeatable, switches to ingredients mode)")
     sub.add_argument("--max-credits", type=int, default=None, help="refuse if Flow's price is higher")
@@ -124,14 +115,15 @@ def _music_parser(sub: argparse.ArgumentParser) -> None:
 
 def _image_inputs(args: argparse.Namespace) -> dict[str, Any]:
     extra = {"model": args.model, "aspect_ratio": args.aspect, "count": args.count,
-             "size": args.size, "ref_paths": args.refs}
+             "size": args.size, "ref_paths": args.refs, "project": args.project}
     return _with_common(args, extra)
 
 
 def _video_inputs(args: argparse.Namespace) -> dict[str, Any]:
     extra = {"model": args.model, "duration": args.duration, "aspect_ratio": args.aspect,
              "resolution": args.resolution, "size": args.size, "start_frame": args.start_frame,
-             "end_frame": args.end_frame, "ref_paths": args.refs, "max_credits": args.max_credits}
+             "end_frame": args.end_frame, "ref_paths": args.refs, "max_credits": args.max_credits,
+             "project": args.project}
     return _with_common(args, extra)
 
 
@@ -148,7 +140,7 @@ def _with_common(args: argparse.Namespace, extra: dict[str, Any]) -> dict[str, A
     inputs["dry_run"] = bool(args.dry_run)
     if args.output:
         inputs["output_path"] = args.output
-    if args.timeout:
+    if args.timeout is not None:
         inputs["timeout_seconds"] = args.timeout
     if args.profile:
         inputs["profile"] = args.profile
@@ -182,57 +174,45 @@ def run(name: str, args: argparse.Namespace) -> int:
     tool = _tool(name)
     inputs = _BUILDERS[name](args)
 
+    if args.retries < 0:
+        return _emit(_status("error", tool, inputs, error="retries must be nonnegative"))
+    inputs["status_retries"] = args.retries
     if args.plan:
-        return _emit(_status("plan", tool, inputs, command=tool.build_command(inputs)))
+        try:
+            cmd = tool.build_command(inputs)
+        except (TypeError, ValueError, OverflowError) as exc:
+            return _emit(_status("error", tool, inputs, error=str(exc)))
+        return _emit(_status("plan", tool, inputs, command=cmd))
 
-    # Live runs drive a browser over CDP. --plan/--dry-run never reach this, and
-    # a non-loopback CHROME_CDP_URL is reported instead of being started locally.
-    cdp = None
-    if not args.dry_run:
-        cdp = ensure_cdp()
-        if not cdp.ok:
-            return _emit(_status("error", tool, inputs, error=cdp.error, cdp=cdp.as_dict()))
+    started = time.monotonic()
+    result = tool.execute(inputs)
+    detail = result.data
+    error = result.error
+    files = result.artifacts or []
+    report = {
+        "attempts": 1,
+        "duration_seconds": round(time.monotonic() - started, 2),
+        "command": detail.get("command"),
+        "job_id": detail.get("job_id"),
+        "project_id": detail.get("project_id"),
+        "media_ids": detail.get("media_ids", []),
+        "files": files,
+        "output": files[0] if files else None,
+        "model": result.model,
+        "recovered": bool(detail.get("recovered")),
+        "detail": detail,
+    }
+    if result.success:
+        status = "dry_run" if detail.get("dry_run") else "ok"
+        return _emit(_status(status, tool, inputs, **report))
 
-    attempts = 0
-    started = time.time()
-    while True:
-        attempts += 1
-        # pi-lens-ignore: python-sql-injection -- BaseTool.execute, not a SQL cursor
-        result = tool.execute(inputs)
-        # Retry only on a timeout, matching the tool's RetryPolicy.
-        timed_out = "timed out" in (result.error or "").lower()
-        if result.success or not timed_out or attempts > args.retries:
-            break
-
-    command = result.data.get("command")
-    if not result.success:
-        error = result.error or "the tool failed without an error message"
-        extra: dict[str, Any] = {}
-        if cdp is not None:
-            # Only a live run has a preflight result to contrast sw's port with.
-            extra["cdp"] = cdp.as_dict()
-            if looks_like_sw_port_failure(error):
-                # sw's own browser port is not the endpoint the preflight gated,
-                # so name the port that actually failed instead of blaming 9222.
-                sw_cdp = sw_port_status(inputs.get("profile"))
-                extra["sw_cdp"] = sw_cdp
-                error = f"{error.rstrip()} {sw_port_note(cdp, sw_cdp)}"
-        return _emit(_status("error", tool, inputs, attempts=attempts, error=error,
-                             duration_seconds=round(time.time() - started, 2),
-                             command=command, **extra))
-
-    files = [p for p in (result.artifacts or []) if Path(p).is_file()]
-    dry_run = bool(result.data.get("dry_run"))
-    if not dry_run and not files:
-        return _emit(_status("error", tool, inputs, attempts=attempts,
-                             error="tool reported success but wrote no media file on disk",
-                             duration_seconds=round(time.time() - started, 2), command=command))
-
-    return _emit(_status("dry_run" if dry_run else "ok", tool, inputs, attempts=attempts,
-                         output=files[0] if files else None, files=files,
-                         model=result.model, recovered=bool(result.data.get("recovered")),
-                         duration_seconds=round(time.time() - started, 2),
-                         detail=result.data, command=command))
+    if looks_like_sw_port_failure(error or ""):
+        port = sw_port_status(inputs.get("profile"))
+        report["sw_cdp"] = port
+        state = "answered" if port["reachable"] else "did not answer"
+        error = f"{error} Chrome for StudioWright profile {port['profile']!r} uses {port['port']}; it {state}."
+    status = "pending" if detail.get("job_status") == "pending" else "error"
+    return _emit(_status(status, tool, inputs, error=error or "Flow call failed", **report))
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -31,6 +31,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -103,7 +104,7 @@ def test_child_process_sees_the_passthrough_and_the_loopback_bypass() -> None:
     child_env = proxy_env.sw_env({"MOZ35_MARKER": "passed-through",
                                   "HTTP_PROXY": "http://proxy.invalid:8080"})
     done = subprocess.run([sys.executable, "-c", script], env=child_env,
-                          capture_output=True, text=True, timeout=60)
+                          capture_output=True, text=True, timeout=60, check=False)
     assert done.returncode == 0, done.stderr
     seen = json.loads(done.stdout)
     assert seen["MOZ35_MARKER"] == "passed-through"
@@ -161,8 +162,19 @@ def test_tools_hand_sw_the_merged_env() -> None:
 
     def fake_run(cmd, **kwargs):
         calls.append({"cmd": cmd, **kwargs})
-        return subprocess.CompletedProcess(
-            cmd, 0, json.dumps({"files": [f"{out_dir}/sample-{len(calls)}.bin"]}), "")
+        job_id = cmd[cmd.index("--job-id") + 1]
+        extension, magic = media_types[tool.name]
+        path = Path(out_dir) / f"sample{extension}"
+        path.write_bytes(magic)
+        return subprocess.CompletedProcess(cmd, 0, json.dumps({
+            "job_id": job_id, "stage": "delivered", "files": [str(path)],
+        }), "")
+
+    media_types = {
+        "flow_image": (".jpg", b"\xff\xd8\xffjpeg"),
+        "flow_video": (".mp4", b"0000ftypmp4"),
+        "flow_music": (".mp3", b"ID3mp3"),
+    }
 
     with tempfile.TemporaryDirectory() as tmp, \
             patch.dict(os.environ, {"MOZ35_MARKER": "passed-through"}), \
@@ -201,25 +213,23 @@ def test_cli_names_sws_port_when_sw_cannot_reach_its_own_chrome() -> None:
             return SimpleNamespace(success=False, error=f"sw image exited 1: {UPSTREAM_PORT_ERROR}",
                                    data={}, artifacts=[], model="nano-banana-2.1")
 
-    originals = (cli._tool, cli.ensure_cdp, cli.sw_port_status)
+    originals = (cli._tool, cli.sw_port_status)
     cli._tool = lambda name: FailingTool()
-    cli.ensure_cdp = lambda **kwargs: chrome_cdp.CdpStatus(
-        ok=True, url=LOCAL_URL, local=True, probes=1)
     cli.sw_port_status = fake_status
     try:
         buffer = io.StringIO()
         with contextlib.redirect_stdout(buffer):
             code = cli.main(["image", "--prompt", "x", "--profile", "stage"])
     finally:
-        cli._tool, cli.ensure_cdp, cli.sw_port_status = originals
+        cli._tool, cli.sw_port_status = originals
 
     report = json.loads(buffer.getvalue())
     assert code == 1 and report["status"] == "error", report
-    assert report["cdp"]["ok"] is True, "9222 answered, so it is not the dead port"
+    assert "cdp" not in report, report
     assert (report["sw_cdp"]["port"], report["sw_cdp"]["profile"]) == (SW_PORT, "stage"), report
     assert report["sw_cdp"]["reachable"] is False
     assert str(SW_PORT) in report["error"], report["error"]
-    assert LOCAL_URL in report["error"], report["error"]
+    assert LOCAL_URL not in report["error"], report["error"]
     assert profiles == ["stage"], profiles
 
 
@@ -227,8 +237,8 @@ def test_help_plan_and_dry_run_spawn_nothing() -> None:
     def bomb(*args, **kwargs):
         raise AssertionError(f"--help/--plan/--dry-run must spawn nothing: {args}")
 
-    original = cli.ensure_cdp
-    cli.ensure_cdp = bomb
+    original = chrome_cdp.ensure_cdp
+    chrome_cdp.ensure_cdp = bomb
     try:
         with patch("subprocess.run", bomb), contextlib.redirect_stdout(io.StringIO()):
             try:
@@ -249,7 +259,7 @@ def test_help_plan_and_dry_run_spawn_nothing() -> None:
                 assert report["status"] in ("plan", "dry_run"), (argv, report)
                 statuses.append(report["status"])
     finally:
-        cli.ensure_cdp = original
+        chrome_cdp.ensure_cdp = original
     assert statuses == ["plan", "plan", "plan", "dry_run", "dry_run"], statuses
 
 

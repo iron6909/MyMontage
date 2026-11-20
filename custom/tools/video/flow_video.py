@@ -5,7 +5,7 @@ required. It consumes credits from your own Google Flow subscription.
 
 Prerequisites
 -------------
-1. Install StudioWright:   uv tool install git+https://github.com/umutkocak/studiowright
+1. Install StudioWright:   make -f custom/Makefile sw-install
 2. Authenticate once:      sw auth login
 3. Keep Chrome running:    sw window hide  (never minimize)
 
@@ -17,22 +17,16 @@ with loopback kept out of `HTTP(S)_PROXY`.
 from __future__ import annotations
 
 import shutil
-import subprocess
-import time
 from pathlib import Path
 from typing import Any
 
 # pi-lens-ignore: reportMissingImports -- resolved from the repo root, like every entry here
 from custom.plugins.studiowright.client import (
-    output_files,
-    parse_sw_json,
-    recover_download,
+    invoke,
+    prompt_command,
+    prompt_text,
+    timeout_seconds,
 )
-
-# pi-lens-ignore: reportMissingImports -- resolved from the repo root
-from custom.tools.common.proxy_env import sw_env
-
-# pi-lens-ignore: reportMissingImports -- resolved from the repo root
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -52,7 +46,7 @@ def _sw_binary() -> str | None:
 
 
 def _out_dir(inputs: dict[str, Any]) -> Path:
-    return Path(inputs.get("output_path") or "out/flow_video")
+    return Path(inputs.get("output_path") or "out/flow_video").expanduser()
 
 
 class FlowVideo(BaseTool):
@@ -71,7 +65,7 @@ class FlowVideo(BaseTool):
     dependencies = []
     install_instructions = (
         "Install StudioWright and authenticate:\n"
-        "  uv tool install git+https://github.com/umutkocak/studiowright\n"
+        "  make -f custom/Makefile sw-install\n"
         "  sw auth login\n"
         "  sw window hide          # keep Chrome running in background\n"
         "Requires a Google account with an active Flow plan."
@@ -128,7 +122,8 @@ class FlowVideo(BaseTool):
             },
             "duration": {
                 "type": "integer",
-                "enum": [4, 6, 8, 10],
+                "minimum": 3,
+                "maximum": 15,
                 "default": 8,
                 "description": "Duration in seconds (Omni 1.1: 4/6/8/10; Omni 1.2: 3–15).",
             },
@@ -145,8 +140,8 @@ class FlowVideo(BaseTool):
             },
             "size": {
                 "type": "string",
-                "enum": ["720p", "1080p", "4K", "270p"],
-                "default": "1080p",
+                "enum": ["original", "720p", "1080p", "4K", "270p"],
+                "default": "original",
                 "description": "Download size (Flow upscales from generation resolution).",
             },
             "start_frame": {
@@ -168,7 +163,7 @@ class FlowVideo(BaseTool):
             },
             "timeout_seconds": {
                 "type": "number",
-                "description": "Abandon the sw call after this many seconds (default: 2x the model estimate).",
+                "description": "StudioWright subprocess time limit in seconds, including downloads.",
             },
             "dry_run": {
                 "type": "boolean",
@@ -179,6 +174,7 @@ class FlowVideo(BaseTool):
                 "type": "number",
                 "description": "Refuse if estimated cost exceeds this many credits.",
             },
+            "project": {"type": "string", "description": "Google Flow project ID."},
             "profile": {
                 "type": "string",
                 "description": "StudioWright profile name (multi-account).",
@@ -201,7 +197,7 @@ class FlowVideo(BaseTool):
     resource_profile = ResourceProfile(
         cpu_cores=1, ram_mb=256, vram_mb=0, disk_mb=500, network_required=True
     )
-    retry_policy = RetryPolicy(max_retries=1, retryable_errors=["timeout"])
+    retry_policy = RetryPolicy()
     idempotency_key_fields = ["prompt", "model", "duration", "aspect_ratio", "start_frame"]
     side_effects = [
         "opens/uses Google Chrome browser session",
@@ -234,142 +230,68 @@ class FlowVideo(BaseTool):
         return 60.0  # omni-flash default
 
     def build_command(self, inputs: dict[str, Any]) -> list[str]:
-        """The exact `sw` argv for these inputs (used by --plan and by execute)."""
+        prompt = prompt_text(inputs)
+        frames = [inputs.get("start_frame"), inputs.get("end_frame")]
+        refs = inputs.get("ref_paths") or []
+        if frames[1] and not frames[0]:
+            raise ValueError("an end frame needs a start frame")
+        if any(frames) and refs:
+            raise ValueError("choose either start/end frames or ingredient reference images")
+        model = inputs.get("model", "omni-flash")
+        duration = inputs.get("duration", 8)
+        if type(duration) is not int or not 3 <= duration <= 15:
+            raise ValueError("duration must be an integer from 3 through 15")
+        if model == "omni-flash" and duration not in (4, 6, 8, 10):
+            raise ValueError("Omni 1.1 supports 4, 6, 8 or 10 seconds")
+        size = inputs.get("size", "original")
+        if size not in ("original", "720p", "1080p", "4K", "270p"):
+            raise ValueError("video size must be original, 720p, 1080p, 4K or 270p")
+        cap = inputs.get("max_credits")
+        if cap is not None and (type(cap) not in (int, float) or cap < 0 or cap != int(cap)):
+            raise ValueError("max_credits must be a nonnegative integer")
+        timeout_seconds(inputs, 720)
         cmd = [_sw_binary() or "sw"]
         if inputs.get("profile"):
             cmd += ["--profile", inputs["profile"]]
         cmd += [
-            "video", inputs["prompt"],
-            "--model", inputs.get("model", "omni-flash"),
-            "--duration", str(inputs.get("duration", 8)),
+            "video", "--model", model, "--duration", str(duration),
             "--aspect", inputs.get("aspect_ratio", "16:9"),
             "--resolution", inputs.get("resolution", "720p"),
-            "--size", inputs.get("size", "1080p"),
-            "--out", str(_out_dir(inputs)),
-            "--json",
+            "--out", str(_out_dir(inputs)), "--json",
         ]
-        if inputs.get("start_frame"):
-            cmd += ["--start", inputs["start_frame"]]
-        if inputs.get("end_frame"):
-            cmd += ["--end", inputs["end_frame"]]
-        ref_paths = inputs.get("ref_paths") or []
-        if ref_paths:
+        if size != "original":
+            cmd += ["--size", size]
+        if inputs.get("project"):
+            cmd += ["--project", inputs["project"]]
+        for flag, frame in zip(("--start", "--end"), frames):
+            if frame:
+                cmd += [flag, frame]
+        if refs:
             cmd += ["--mode", "ingredients"]
-            for ref in ref_paths:
+            for ref in refs:
                 cmd += ["--ref", ref]
         if inputs.get("dry_run"):
             cmd.append("--dry-run")
-        if inputs.get("max_credits") is not None:
-            # sw --max-credits is INTEGER; a float would be rejected by click.
-            cmd += ["--max-credits", str(int(inputs["max_credits"]))]
-        return cmd
+        if cap is not None:
+            cmd += ["--max-credits", str(int(cap))]
+        return prompt_command(cmd, prompt)
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        prompt = inputs["prompt"]
-        model = inputs.get("model", "omni-flash")
-        duration = inputs.get("duration", 8)
-        aspect = inputs.get("aspect_ratio", "16:9")
-        resolution = inputs.get("resolution", "720p")
-        size = inputs.get("size", "1080p")
-        dry_run = inputs.get("dry_run", False)
-        profile = inputs.get("profile")
-
-        sw = _sw_binary()
-        if not sw:
-            return ToolResult(
-                success=False,
-                error="StudioWright (sw) not found. " + self.install_instructions,
-            )
-
-        cmd = self.build_command(inputs)
-        out_dir = _out_dir(inputs)
-        out_dir.mkdir(parents=True, exist_ok=True)
-
-        timeout_s = float(
-            inputs.get("timeout_seconds")
-            or max(300, int(self.estimate_runtime(inputs)) * 2)
-        )
-        start = time.time()
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout_s,
-                env=sw_env(),
-            )
-        except subprocess.TimeoutExpired:
-            return ToolResult(
-                success=False,
-                error=f"flow_video timed out after {timeout_s:.0f}s. "
-                      "Chrome may be minimized — use `sw window hide` instead.",
-            )
-        except Exception as exc:
-            return ToolResult(success=False, error=f"flow_video failed to start: {exc}")
-
-        stdout = result.stdout.strip()
-        stderr = result.stderr.strip()
-
-        if result.returncode != 0:
-            # The clip is already generated; only sw's inline download failed.
-            files = [] if dry_run else recover_download(sw, "video", start, out_dir, size, profile)
-            if files:
-                return ToolResult(
-                    success=True,
-                    data={
-                        "provider": "google_flow",
-                        "model": model,
-                        "prompt": prompt,
-                        "duration_seconds": duration,
-                        "aspect_ratio": aspect,
-                        "resolution": resolution,
-                        "output": files[0],
-                        "dry_run": False,
-                        "recovered": True,
-                        "cost_status": "flow_credits",
-                    },
-                    artifacts=files,
-                    cost_usd=None,
-                    duration_seconds=round(time.time() - start, 2),
-                    model=model,
-                )
-            return ToolResult(
-                success=False,
-                error=f"sw video exited {result.returncode}: {stderr or stdout}",
-            )
-
-        data = parse_sw_json(stdout)
-
-        output_file: str | None = None
-        if not dry_run:
-            mp4s = output_files(data, out_dir, ("*.mp4",))
-            output_file = mp4s[0] if mp4s else None
-
-        if not output_file and not dry_run:
-            return ToolResult(
-                success=False,
-                error=f"flow_video returned no output file. stdout={stdout!r}",
-            )
-
-        duration_elapsed = round(time.time() - start, 2)
-        return ToolResult(
-            success=True,
-            data={
-                "provider": "google_flow",
-                "model": model,
-                "prompt": prompt,
-                "duration_seconds": duration,
-                "aspect_ratio": aspect,
-                "resolution": resolution,
-                "output": output_file,
-                "dry_run": dry_run,
-                "sw_data": data,
-                "cost_status": "flow_credits",
+            cmd = self.build_command(inputs)
+            sized = inputs.get("size", "original") != "original"
+            default = 90 if inputs.get("dry_run") else (2100 if sized else 840)
+            timeout = timeout_seconds(inputs, default)
+        except (TypeError, ValueError, OverflowError) as exc:
+            return ToolResult(success=False, error=str(exc))
+        if cmd[0] == "sw":
+            return ToolResult(success=False, error="StudioWright (sw) not found. " + self.install_instructions)
+        return invoke(
+            cmd, kind="video", inputs=inputs, output=_out_dir(inputs), timeout=timeout,
+            metadata={
+                "provider": self.provider, "model": inputs.get("model", "omni-flash"),
+                "prompt": inputs["prompt"], "duration_seconds": inputs.get("duration", 8),
+                "aspect_ratio": inputs.get("aspect_ratio", "16:9"),
+                "resolution": inputs.get("resolution", "720p"),
             },
-            artifacts=[output_file] if output_file else [],
-            cost_usd=None,
-            duration_seconds=duration_elapsed,
-            model=model,
         )
