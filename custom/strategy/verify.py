@@ -10,6 +10,8 @@ import sys
 
 POLICY_PATH = "custom/strategy/policy.json"
 REQUIRED_FILE = "custom/AGENTS.md"
+HOSTED_WORKFLOW = ".github/workflows/mymontage-ci.yml"
+SCOPE = ["custom", ".github/workflows"]
 ARTIFACT_DIRS = {".task", "out", "projects"}
 TESTS = (
     "test_providers_env.py",
@@ -43,12 +45,13 @@ def pinned_sha(value, label):
     return value
 
 
-def baseline_at(commit):
+def baseline_at(commit, *, allow_legacy_policy=True):
     policy = json.loads(git("show", f"{commit}:{POLICY_PATH}"))
+    scopes = (SCOPE, ["custom"]) if allow_legacy_policy else (SCOPE,)
     if (
         not isinstance(policy, dict)
         or policy.keys() != {"allow", "baseline", "required_file"}
-        or policy["allow"] != ["custom"]
+        or policy["allow"] not in scopes
         or policy["required_file"] != REQUIRED_FILE
     ):
         raise ValueError(f"invalid downstream scope in {commit}:{POLICY_PATH}")
@@ -69,7 +72,7 @@ def verify_policy(base, upstream, require_clean):
     if Path(git("rev-parse", "--show-toplevel").strip()).resolve() != Path.cwd():
         raise ValueError("run from the MyMontage worktree root")
     head = git("rev-parse", "HEAD").strip()
-    baseline = baseline_at(head)
+    baseline = baseline_at(head, allow_legacy_policy=not require_clean and not base)
     if expected_head := os.environ.get("STRATEGY_HEAD_SHA"):
         if expected_head != head:
             raise ValueError("checkout does not match STRATEGY_HEAD_SHA")
@@ -92,6 +95,8 @@ def verify_policy(base, upstream, require_clean):
     instructions = Path(REQUIRED_FILE)
     if not instructions.is_file() or instructions.is_symlink():
         raise ValueError(f"{REQUIRED_FILE} must be a regular file in the checkout")
+    if (require_clean or base) and not git("ls-tree", head, "--", HOSTED_WORKFLOW).startswith("100644 blob "):
+        raise ValueError(f"{HOSTED_WORKFLOW} must be a committed regular file")
 
     index = list(nul_paths(git("ls-files", "-v", "-z")))
     reject_paths(
@@ -99,15 +104,15 @@ def verify_policy(base, upstream, require_clean):
         "remove skip-worktree and assume-unchanged flags or use a clean checkout",
     )
     diff = ("diff", "--no-ext-diff", "--no-renames", "--name-only", "-z")
-    upstream_custom_paths = set(nul_paths(git("ls-tree", "-r", "--name-only", "-z", baseline, "--", "custom")))
+    upstream_paths = set(nul_paths(git("ls-tree", "-r", "--name-only", "-z", baseline, "--", "custom", HOSTED_WORKFLOW)))
     comparisons = [(baseline, head), ("--cached", head), (), ("--cached", baseline)]
     if base and not upstream:
         comparisons.append((base, head))
     for comparison in comparisons:
         changes = list(nul_paths(git(*diff, *comparison, "--")))
-        outside = (path for path in changes if not path.startswith("custom/"))
-        reject_paths(outside, "changes outside custom/")
-        reject_paths(upstream_custom_paths.intersection(changes), "changes to upstream-owned files under custom/")
+        outside = (path for path in changes if not path.startswith("custom/") and path != HOSTED_WORKFLOW)
+        reject_paths(outside, f"changes outside custom/ and {HOSTED_WORKFLOW}")
+        reject_paths(upstream_paths.intersection(changes), "changes to upstream-owned files in the downstream scope")
 
     def is_artifact(path):
         return ARTIFACT_DIRS.intersection(PurePosixPath(path).parts)

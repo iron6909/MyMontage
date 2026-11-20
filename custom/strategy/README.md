@@ -10,9 +10,11 @@ python3.11 -m venv .venv
 make -f custom/Makefile ci BASE_SHA="$BASE_SHA"
 ```
 
-`BASE_SHA` 由运行器填入 PR 目标分支的完整提交 SHA。验证当前候选提交或已包含目标分支的合并预览；普通 PR 以该目标提交的 `policy.json` 为准。同步 PR 额外传入由维护者选定的 `UPSTREAM_SHA="$UPSTREAM_SHA"`，校验候选提交确实集成了该上游 SHA，并且新基线与之相同。分支更新后重新验证。
+`BASE_SHA` 由运行器填入 PR 目标分支的完整提交 SHA。普通 PR 使用该目标提交的 `policy.json`；同步 PR 使用提议的新基线，GitHub Actions 会先确认它来自 `OpenMontageInc/OpenMontage` 的 `main` 历史，再把它传入 `UPSTREAM_SHA`。分支更新后重新验证。
 
-现有上游工作流继续运行上游测试。提供合入门禁的外部运行器须调用上述 `ci` 目标，把退出结果发布为 `main` 的必过状态检查。Strategy Stack 常规代码任务已有 `verify.py` 接口，它只验证下游范围和离线回归。外部 CI 接入及必过状态由仓库维护者配置。合入检查使用无生产凭据的环境，依赖安装完成后，测试无需浏览器登录或付费 API。
+GitHub Actions 在面向 `main` 的 PR 上运行 `MyMontage integration`。该检查涵盖 Git 边界、运行产物、下游离线回归和上游测试。工作流入口是 `.github/workflows/mymontage-ci.yml`。现有上游工作流独立运行。合入检查使用无生产凭据的环境，测试无需浏览器登录或付费 API。
+
+Strategy Stack 常规代码任务继续使用 `verify.py`。其 `policy.json` 按目录前缀读取范围，验证脚本进一步将 `.github/workflows/` 约束到单个工作流文件。
 
 如需只跑下游验证，从 Git worktree 根目录运行 `.venv/bin/python -B custom/strategy/verify.py`。加 `--policy-only` 可只检查 Git 基线、范围和产物。传入 `--base <目标分支 SHA>` 时，还会检查该 PR 新增的下游提交，包含随后删除的产物。验证脚本从当前 worktree 读取候选内容，支持由外部 Strategy Stack 使用已有解释器启动。
 

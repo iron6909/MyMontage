@@ -4,7 +4,7 @@ MyMontage 以 OpenMontage 为上游。先读仓库根目录的 `AGENT_GUIDE.md`�
 
 ## 提交边界
 
-- 常规开发只在 `custom/` 内新增、修改或删除下游文件。同步完成后，将候选提交与选定的 OpenMontage 提交比较，`custom/` 以外的文件树和上游已跟踪的文件必须一致。
+- 常规开发只在 `custom/` 内新增、修改或删除下游文件。仓根唯一的下游例外是 GitHub Actions 入口 `.github/workflows/mymontage-ci.yml`，验证逻辑放在 `custom/`。同步时，上游已跟踪的文件必须与选定基线一致。
 - 上游修复优先使用 `custom/` 中的适配器，或向上游提交。开发、同步和 CI 工作树不得通过 `git apply` 改写上游文件，也不得使用 `skip-worktree` 或 `assume-unchanged` 隐藏修改。现有 Piper 修复已迁移到 `mymontage_piper_tts`。[旧检出迁移说明](docs/LOCAL_DEPLOY.md#retire-the-legacy-working-tree-patch)
 - `.task/`、`out/`、`projects/` 等运行目录和其中的证据不入库，包括 `custom/` 下的同名目录。`projects/` 已由上游忽略。开发机可将 `.task/` 和 `out/` 加入本地 `.git/info/exclude`。CI 检查候选文件和 PR 新增的下游提交，忽略配置只用于减少本地噪音。
 - `custom/config/` 只提交配置模板及占位符。生产凭据由部署环境提供。
@@ -13,7 +13,7 @@ MyMontage 以 OpenMontage 为上游。先读仓库根目录的 `AGENT_GUIDE.md`�
 
 - [固定上游基线](strategy/policy.json)记录已经集成的 OpenMontage 完整 SHA。普通 PR 使用目标分支上的基线，基线变更走专门的上游同步 PR。
 - 同步从干净的 MyMontage `main` 开始，获取并固定 `upstream/main` 的候选 SHA，在独立分支合并，再在同一个 PR 更新 `policy.json`。同步 PR 使用保留上游提交祖先关系的合并方式。
-- 合入前在独立干净检出运行 `make -f custom/Makefile ci BASE_SHA=<目标分支完整SHA>`。同步 PR 额外传入 `UPSTREAM_SHA=<已确认的上游完整SHA>`。提交范围、产物、上游 lint 与测试、下游离线回归均须通过。验证失败时保留原基线，在同步分支修复后重跑。[同步步骤及 CI 接线](strategy/README.md)
+- 合入 `main` 的 PR 必须通过 GitHub Actions 的 `MyMontage integration` 检查。本地可在干净检出运行 `make -f custom/Makefile ci BASE_SHA=<目标分支完整SHA>`，同步时另传 `UPSTREAM_SHA=<已确认的上游完整SHA>`。验证失败时保留原基线，在同步分支修复后重跑。[同步步骤及 CI 接线](strategy/README.md)
 
 ## 定制资产和接入点
 
