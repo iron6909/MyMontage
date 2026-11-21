@@ -2,7 +2,7 @@
 
 本文件只写**已经实现、并且已经核对过**的接口。核实环境：worktree
 `feat/MOZ-27`（基线 `35cb953`），Asia/Taipei 2026-11-19；StudioWright
-`0.2.13`（本机 `/home/banko/.local/bin/sw`）。
+fork（`custom/Makefile` 固定提交，本机 `/home/banko/.local/bin/sw`）。
 
 模型条数（70/39/35）与默认模型来自 MOZ-24/25/26 在 2026-11-19 对官方目录的
 核对记录（写在各自源码注释里）。本单**没有**重新拉取目录、也没有做任何真实
@@ -29,7 +29,7 @@
 | `OPENROUTER_BASE_URL` | 覆盖 API 根（自建代理 / 本地回放） | `https://openrouter.ai/api/v1`；进程环境缺失时同样读 `$HOME/.harness/providers.env` |
 | `FFMPEG` | 音频归一化用的 ffmpeg | 先探 `/usr/bin/ffmpeg`，再探 `PATH`；**第一个能 `-version` 成功的**才算数 |
 | `FFPROBE` | 视频写入前校验用的 ffprobe | 同上顺序（`/usr/bin/ffprobe` 优先于 `PATH`） |
-| `CHROME_CDP_URL` | Flow **live** 运行前的本机 CDP 端点 | `http://127.0.0.1:9222`（本机默认）；只有 loopback 端点会触发一次 `systemctl --user start chrome-cdp.service` + 3 s 重探，仍失败即非 0；非 loopback 只探不动本机服务 |
+| `CHROME_CDP_URL` | 独立的 Chrome 调试服务检查端点 | `http://127.0.0.1:9222`，仅由 `chrome-cdp-check` 使用 |
 | `NO_PROXY` / `no_proxy` | `sw` 子进程的 loopback 绕行 | 两个拼写都取并集，再加 `127.0.0.1,localhost,::1`（已有绕行域保留）；其余环境变量原样透传给 `sw` |
 
 探测顺序固定为 `显式参数 → 环境变量 → /usr/bin → PATH`。本机 Homebrew 的
@@ -50,17 +50,10 @@ OpenRouter 客户端重试策略（`custom/tools/common/openrouter_client.py`）
 默认 `--max-attempts 3`；其它 4xx 立刻失败。错误文本会先抹掉 key 与
 `Bearer` 头再打印。
 
-Flow 三个工具是注册表里的 `BaseTool`（`flow_image`/`flow_video`/`flow_music`），
-命令行入口是 `custom/plugins/studiowright/cli.py`。三者的 **live** 运行（非
-`--plan` / `--dry-run`）在提交前统一过一道 CDP 预检
-（`custom/tools/common/chrome_cdp.py`，见 `custom/docs/FLOW.md`）；`--help`、
-`--plan`、`--dry-run` 不触发它，预检失败会先于提交报错（退出码 1）。
-
-预检只管 `9222`（或 `CHROME_CDP_URL` 指定的那个端点）。`sw` **自己**另起一个
-loopback 端口：`9300 + crc32(profile) % 90`，`default` → `9319`。所以
-`chrome.py` 的 `Chrome did not open its debugging port` 说的是 9319，不是 9222；
-这类失败的错误里会带上 `cdp`（已应答的 9222）与 `sw_cdp`
-（`profile`/`port`/`url`/`reachable`）。
+Flow 三个工具由 `custom.tools.loader.load()` 注册。CLI 入口位于
+`custom/plugins/studiowright/cli.py`。StudioWright 自行启动或复用 profile 的 Chrome，
+默认 profile 使用端口 `9319`。任务用精确的 `job_id` 查询，已有媒体按媒体 ID 补下载。
+结果可能为 `pending`，并保留可用的媒体 ID 和已落盘文件。部署与恢复见 [FLOW.md](../docs/FLOW.md)。
 OpenRouter 三个工具是 **独立 argparse 脚本，不是 BaseTool**，不出现在
 `registry` 里。
 
@@ -83,21 +76,20 @@ python3 -m custom.plugins.studiowright image --prompt "a red fox in snow" \
 | `--model` | | `nano-banana-2.1`（默认）/ `nano-banana-pro` / `nano-banana-2-lite` |
 | `--aspect` | | `16:9`（默认）/ `4:3` / `1:1` / `3:4` / `9:16` |
 | `--count` | | `1`–`4`，默认 `1` |
-| `--size` | | 下载尺寸 `1K` / `2K`（默认）/ `4K`；2K/4K 由 Flow 放大 |
+| `--size` | | `original`（默认）/ `1K` / `2K` / `4K` |
+| `--project` | | Google Flow 项目 ID |
 | `--ref` | | 参考图路径或 Flow media id，可重复（多参考） |
 | `--output` | | 输出目录（不是文件） |
-| `--timeout` | | 秒；默认 `120 × count` |
-| `--retries` | | 仅 **timeout** 重试，默认 `0`；重试=重新提交，可能重复扣额度 |
+| `--timeout` | | 秒；按张数和下载尺寸使用不同默认值 |
+| `--retries` | | 超时后额外查询同一个任务的次数，默认 `0` |
 | `--dry-run` | | **客户端**预检，不碰浏览器、不扣额度 |
 | `--plan` | | 只打印拼好的 `sw` argv，连 `sw` 没装都能跑 |
 | `--profile` | | StudioWright 多账号 profile |
 
-产物：目录下的 `*.jpg/*.png/*.webp`，结果里带 `files`。`sw` 内联下载失败时会
-用 `sw media list` + `sw download` 按 media id 补下载，不重生成、不重复扣费。
+产物为目录中的 JPEG、PNG 等图片，结果的 `files` 列出已验证的文件。
 
 限制：必须有已登录的 Chrome 与有效 Flow 套餐；约 20 s/张；不允许 headless
-服务器；没有远端报价接口，所以 `--dry-run` 只做本地参数校验。未暴露
-`sw --project`。
+服务器；`--dry-run` 只做本地参数校验。
 
 ---
 
@@ -118,21 +110,19 @@ python3 -m custom.plugins.studiowright video --prompt "drone shot over a fjord" 
 | `--duration` | | 秒，默认 `8`；Omni 1.1 只收 `4/6/8/10`，Omni 1.2 收 `3–15` |
 | `--aspect` | | `16:9`（默认）/ `9:16` |
 | `--resolution` | | `360p` / `720p`（默认）；仅 Omni |
-| `--size` | | 下载尺寸 `720p` / `1080p`（默认）/ `4K` / `270p` |
+| `--size` | | `original`（默认）/ `720p` / `1080p` / `4K` / `270p` |
+| `--project` | | Google Flow 项目 ID |
 | `--start` / `--end` | | 首帧 / 尾帧：本地路径或 Flow media id |
 | `--ref` | | 参考图（`--mode ingredients`），可重复 |
 | `--max-credits` | | Flow 报价超过这个整数额度就拒绝提交（`sw` 只收 INTEGER） |
 | `--output` | | 输出目录 |
-| `--timeout` | | 默认 `max(300, 2 × 估算)` |
-| `--retries` | | 仅 timeout；默认 `0` |
+| `--timeout` | | 秒；原始尺寸默认 840，指定尺寸默认 2100，询价默认 90 |
+| `--retries` | | 超时后额外查询同一个任务的次数，默认 `0` |
 | `--dry-run` | | 调 `sw video --dry-run`：**只向 Flow 问报价，不提交**（需要 `sw` 且能连到已登录的 Chrome；连不上就是 `status: error`，不花钱） |
 | `--plan` | | 只打印 argv，不需要 `sw` |
 
-产物：`*.mp4`。限制：需要已登录 Chrome + Flow 套餐；30–120 s/条；未暴露
-`sw --count` / `--project`；画面质量与首尾帧可用性随模型不同，以 Flow 页面
-实际报价/报错为准。本机 run-worker（无可用 Chrome 调试端口）实测 `--dry-run`
-直接返回 `sw video exited 1: ... Chrome did not open its debugging port`，属环境
-阻断而非工具缺陷；`--plan` 在无 Chrome、无 `sw` 时也能跑。
+产物为 MP4，`270p` 选项可产生 GIF。视频每次生成一条。模型、首尾帧和
+所选尺寸是否可用，以 Flow 页面实际报价和结果为准。
 
 ---
 
@@ -283,7 +273,7 @@ python3 -m custom.tools.video.openrouter_video \
 - OpenRouter 图像：`/images/generations` 兼容路由、批量 N 张、尺寸像素参数。
 - OpenRouter 语音：流式、逐词时间戳、多角色对白、直接出 `srt`。
 - OpenRouter 视频：last-frame、多参考图、任务取消、Webhook、多输出索引。
-- Flow：headless/服务器运行；`sw --project`、`sw --count`（视频）、
+- Flow：headless/服务器运行；`sw --count`（视频）、
   `sw --seed`/`--cover`（音乐）都未在本仓 CLI 暴露。
 - fal / Harness：本仓没有安装它们的 Bot 插件，只按只读方式参照本地
   `tools/` 源码契约。

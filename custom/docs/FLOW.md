@@ -1,186 +1,54 @@
-# Google Flow (studiowright) — 免侵入接入说明
+# Google Flow 与 StudioWright
 
-Flow 的图像 / 视频 / 音乐走 [StudioWright](https://github.com/umutkocak/studiowright)
-的 `sw` CLI：它用 Playwright 驱动**本机已登录的 Chrome** 打开 Google Flow，
-不需要 API key，消耗你自己 Google 账号的 Flow 额度。
+MyMontage 的 `flow_image`、`flow_video` 和 `flow_music` 调用 [StudioWright fork](https://github.com/iron6909/studiowright) 的 `sw` CLI。原生 StudioWright MCP 由同一个可执行文件的 `sw mcp` 启动。两条入口共用 Google Flow 或 Flow Music 的 Chrome 登录态和任务记录。
 
-本仓不修改任何上游文件，全部代码在 `custom/`：
-
-| 资产 | 路径 |
-|---|---|
-| 图像工具 | `custom/tools/image/flow_image.py` |
-| 视频工具 | `custom/tools/video/flow_video.py` |
-| 音乐工具 | `custom/tools/audio/flow_music.py` |
-| `sw` 调用层 / CLI 入口（插件） | `custom/plugins/studiowright/` |
-| CLI 启动器 | `custom/scripts/flow_cli.sh` |
-| 凭证存在性检查 | `custom/scripts/sw_credentials.py` |
-| 本机 CDP 预检（共享） | `custom/tools/common/chrome_cdp.py` |
-| `chrome-cdp.service` 模板 | `custom/config/systemd/chrome-cdp.service` |
-| 契约自检 | `custom/tests/test_flow_contract.py`、`custom/tests/test_flow_cdp_preflight.py` |
-
-## 入口（在仓根可跑，不再 `ModuleNotFoundError: custom`）
-
-三个工具都是 `BaseTool`（注册表契约），**本身不是 argparse 脚本**。原来
-`python3 custom/tools/graphics/flow_image.py --help` 会因为在 `sys.path` 里
-放的是 `custom/tools/graphics` 而失败。现在只有一个入口，且会自己切到仓根：
+## 安装与检查
 
 ```bash
-cd ~/MyMontage                       # 任何目录也可以，启动器会自己 cd 回来
-python3 -m custom.plugins.studiowright image --help
-python3 -m custom.plugins.studiowright video --help
-python3 -m custom.plugins.studiowright music --help
-
-bash custom/scripts/flow_cli.sh image --help          # 等价，不依赖 cwd
-make -f custom/Makefile flow-help                     # 同上，一次跑完三个
+make -f custom/Makefile sw-install
+make -f custom/Makefile sw-credentials
+make -f custom/Makefile sw-tools
+make -f custom/Makefile sw-doctor
 ```
 
-`python3 -m ...` 是唯一被文档化的 module 入口；直接跑文件路径永远不行
-（`custom` 不在 `sys.path`），这正是本次修正的失败原因。
+`sw-install` 使用 `custom/Makefile` 记录的 fork 提交。已登录的 Chrome profile 仍由 StudioWright 管理。首次登录 Flow 用 `sw auth login`，首次登录 Flow Music 用 `sw auth login --url https://www.flowmusic.app/`。MCP 客户端的 stdio 启动命令可以直接使用已安装的 `sw mcp`。从 fork 安装的 Claude Code 插件也使用同一提交。
 
-## 三种「不花钱」的模式
+StudioWright 自行启动或复用 profile 对应的 Chrome。`default` 使用 `127.0.0.1:9319`，其他 profile 的端口为 `9300 + crc32(profile) % 90`。MyMontage 将父进程环境传给 `sw`，并在两种 `NO_PROXY` 拼写中保留现有绕行项与 loopback。`chrome-cdp-check` 及 `CHROME_CDP_URL` 属于独立的 Chrome 调试服务检查。
 
-| 模式 | 命令 | 会不会碰 Flow |
-|---|---|---|
-| `--plan` | `... video --prompt "x" --plan` | 不会。只把拼好的 `sw` argv 打印出来（连 `sw` 没装都能跑） |
-| `--dry-run` | `... image --prompt "x" --dry-run` | 图像/音乐：客户端直接返回，不碰浏览器；视频：`sw video --dry-run`，只向 Flow 问价格，不提交 |
-| `--retries` | `... image --prompt "x" --retries 1` | 仅在 **timeout** 时重试（对齐各工具的 `RetryPolicy(retryable_errors=["timeout"])`）。重试会重新提交，可能重复扣额度，默认 0 |
-
-成功才算成功：CLI 会检查 `files` 里的路径**在磁盘上真的存在**，否则输出
-`status: "error"`。标准状态永远是同一个 JSON：
-
-```json
-{"status": "ok", "tool": "flow_image", "provider": "google_flow",
- "output": "out/fox/xxx.jpg", "files": ["out/fox/xxx.jpg"], "attempts": 1,
- "duration_seconds": 21.4, "command": ["/home/.../sw", "image", "...", "--json"]}
-```
-
-`--prompt` / `--output` / `--timeout` / `--retries` 是三个工具共有的；其余
-`--model` / `--aspect` / `--count` / `--size` 等按子命令给出（见 `--help`）。
-
-## 本机 CDP 预检（live 运行的前置门禁）
-
-除 `--plan` / `--dry-run` 之外的真实运行，提交前会过一道 CDP 预检
-（`custom/tools/common/chrome_cdp.py`，由 `custom/plugins/studiowright/cli.py`
-调用一次）。三处入口（`python3 -m ...`、`flow_cli.sh`、`make flow`）都经过它，
-没有任何一个工具模块各自复制一份。
-
-| 情形 | 行为 |
-|---|---|
-| `CHROME_CDP_URL` 未设置 | 探 `http://127.0.0.1:9222/json/version`（本机默认） |
-| 端点有响应 | 直接放行，不碰 systemd |
-| loopback 端点无响应 | `systemctl --user start chrome-cdp.service` 一次 → 等 3 s → 再探一次 |
-| 重探仍失败 | `status: "error"`，退出码 1，错误里写明端点与 unit 状态 |
-| `CHROME_CDP_URL` 指向**非** loopback | 只探、**不**启动本机服务；连不上就是错误 |
-| URL 里带 userinfo / query | 探针本身不带凭据；日志与 JSON 里只有 `***@host:port` 与 `?***` |
-
-单独检查（与 Flow 入口同一份代码；只会在 loopback 且 unit 已安装时才去 start）：
+## 工具入口
 
 ```bash
-make -f custom/Makefile chrome-cdp-check      # 打印 JSON 状态；端点通=0
-python3 -m custom.tools.common.chrome_cdp     # 等价
+python3 -m custom.plugins.studiowright image --prompt 'a red fox in snow' --output out/flow_image
+python3 -m custom.plugins.studiowright video --prompt 'clouds drift over a fjord' --model omni-flash-1.2 --duration 4 --dry-run
+python3 -m custom.plugins.studiowright music --prompt 'quiet piano, instrumental' --length 1:00 --output out/flow_music
 ```
 
-unit 模板是 `custom/config/systemd/chrome-cdp.service`：loopback `9222`、独立
-`~/.harness/chrome-flow-profile`、`--password-store=basic`、`--no-first-run`、
-`--no-default-browser-check`、`Restart=always`，起始页
-`https://labs.google/fx/tools/flow`；每个开关各占一个参数（多行续行）。
-本仓**不**安装、不 enable、不 start 它：
+`bash custom/scripts/flow_cli.sh` 也支持这些子命令。进程内调用可通过 `custom.tools.loader.load()` 注册三个 `BaseTool`。完整参数见 [工具注册表](../tools/REGISTRY.md)。
+
+- `--output` 指向目录。成功结果给出实际落盘的绝对路径。
+- 图像和视频默认下载原始尺寸。`--size 2K`、`--size 4K`、`--size 1080p` 等显式选择会由 Flow 处理。若已生成的媒体需要回退到原始尺寸，结果的 `detail.sw_data.notes` 会说明。
+- 图像和视频支持 `--project PROJECT_ID`。
+- `--plan` 只构造命令。图像和音乐的 `--dry-run` 只做本地参数检查。视频的 `--dry-run` 从 Flow 读报价，`--max-credits` 为正式提交设置上限。
+- `--timeout` 设定 `sw` 进程的等待时间。`--retries` 只增加对同一个任务的状态查询次数。
+
+## 状态与下载
+
+每次正式调用分配一个 `job_id`。结果为 `ok` 时，文件已在输出目录通过格式和数量检查。`pending` 表示提交结果待确认，或媒体已生成但仍有文件待下载，退出码为 `1`。结果保留已经验证的文件、已确认的 `media_ids` 和 `project_id`。音乐的歌曲 ID 在 `detail.songs` 中。调用还剩时间时，适配器会按已确认的 ID 补下载。
+
+查看任务记录或在稍后补下载时，使用原来的 profile 和 ID。以下命令只查询或下载已有任务的产物。
 
 ```bash
-make -f custom/Makefile chrome-cdp-install    # 只复制到 ~/.config/systemd/user/；已存在则拒绝
-# 部署（运维步骤，不在本仓自动执行）：systemctl --user enable --now chrome-cdp.service
+sw job "$JOB_ID" --json
+sw download "$MEDIA_ID" --project "$PROJECT_ID" --out out/recovered --json
+sw music download "$SONG_ID" --format mp3 --out out/recovered --json
 ```
 
-边界：预检只验证端点可达——不登录 Google、不填表单、不开隧道/代理、不动你日常
-的 Chrome profile、不杀已在跑的 Chrome。另外 `sw` 0.2.13 目前仍按自己的 9300+
-loopback 端口启动自己的 Chrome；把 `sw` 接到这条端点上**不在本单范围**，本单只
-把「端点没起来」变成一句明确的非 0 错误，并区分是哪一个 loopback 端口没应答。
+原生 MCP 对应 `flow_job`、`flow_download` 和 `music_download`。如果提交回包丢失且没有确认到媒体 ID，可以用 `sw media list --project "$PROJECT_ID" --json` 查看项目里的媒体并人工确认归属。
 
-### 两个 loopback 端口不是同一个
-
-| 端口 | 谁在听 | 预检管不管 |
-| --- | --- | --- |
-| `9222`（或 `CHROME_CDP_URL` 指定的那个） | 本仓的 `chrome-cdp.service` | 管：live 运行的唯一门禁 |
-| `9300 + crc32(profile) % 90`（`default` → **9319**） | `sw` 自己拉起的 Chrome（`chrome.py debug_port`） | 不管：由 `sw` 负责 |
-
-`CHROME_CDP_URL` 不被 `sw` 读取，本仓也从不改写它——非 loopback 的 URL 原样透传
-给子进程。所以 `chrome.py` 那句 `Chrome did not open its debugging port` 说的是
-**sw 自己的 9319**，不是 9222 没开。这类失败的错误对象里会同时带上 `cdp`（已经
-应答的 9222）和 `sw_cdp`（`profile` / `port` / `url` / `reachable`），`error` 里
-点名是哪个端口没应答。
-
-### 传给 `sw` 的环境变量
-
-每次调用 `sw` 都显式传 `env=`：`os.environ` 的**完整拷贝**，只把 `NO_PROXY` /
-`no_proxy` 合并后加入 `127.0.0.1,localhost,::1`（已有的绕行域保留）。原因：`sw`
-用 `urllib` 探自己的 loopback 端口，`HTTP(S)_PROXY` 一旦生效，这次请求会被代理
-出去，端口看起来就是死的。除这两个变量外不改任何东西，也不打印环境。
-实现是 `custom/tools/common/proxy_env.py` 的 `sw_env()`：
-
-```bash
-python3 -m custom.tests.test_flow_sw_env    # no_proxy 合并 + 子进程透传 + 端口区分
-```
-
-## 已核对的 `sw` 契约（StudioWright 0.2.13，本机安装）
-
-`sw` 是 click 命令行，不是 argparse；`sw ... --json` 只打印**一个** JSON 对象
-（`_emit` = `json.dumps(..., indent=1)`），结果里的文件路径在 `files` 键。
-逐行 `json.loads` 会解析失败——`client.parse_sw_json` 按整段解析。
-
-核对时修正的三处真实缺陷：
-
-1. `sw music trim` / `sw music replace` 的 `--start` / `--end` 是**必填**，
-   原实现从不传，命令必然报 UsageError → 现在作为输入校验 + 传参。
-2. `sw --max-credits` 是 `INTEGER`，原实现透传 `str(10.0)` → 现改成 `int()`。
-3. `sw music stems / variation` 只接受 `--format/--out/--json`，给它们塞
-   `--lyrics/--title` 会被 click 拒绝 → 现在按 action 分别拼参数。
-   顺带：`--format` 现在对所有 action 都生效（原来只有 create/stems 传）。
-
-`custom/tests/test_flow_contract.py` 把「我们发出的 `--flag` 必须是
-`sw --help` 里存在的」和「必填项必须发出去」固化成断言：
+## 离线检查
 
 ```bash
 python3 -m custom.tests.test_flow_contract
+python3 -m custom.tests.test_flow_cdp_preflight
+python3 -m custom.tests.test_flow_sw_env
 ```
-
-## 凭证
-
-`sw` 的登录态在 StudioWright 自己的 Chrome profile 里
-（默认 `~/.local/share/studiowright/profiles/<profile>`，`STUDIOWRIGHT_HOME`
-可覆盖）。本仓的 Flow 工具**不读 cookie、不导出 session、不写 token**：它们
-只调用 `sw`，登录态归 `sw` 管。
-
-任何密钥/会话只允许来自环境变量、被忽略的 `.env` 或 `~/.harness/`。检查只会
-打印「存在与否 + 路径」，不会打印值：
-
-```bash
-make -f custom/Makefile sw-credentials      # 或 python3 custom/scripts/sw_credentials.py
-```
-
-输出是 bool + path（`sw_on_path`、`chrome_profile`、`repo_env_exists`、
-`repo_env_git_ignored` …）。`.env` 已幂等写入 `.git/info/exclude`。
-
-## 一次性准备
-
-```bash
-make -f custom/Makefile sw-install        # uv tool install git+.../studiowright
-make -f custom/Makefile sw-auth-flow      # sw auth login
-make -f custom/Makefile sw-auth-music     # sw auth login --url https://www.flowmusic.app/
-make -f custom/Makefile sw-hide           # 把 Chrome 挪到屏幕外（不要最小化）
-make -f custom/Makefile sw-doctor         # 只读检查 Flow 页面钩子，不花钱
-make -f custom/Makefile sw-tools          # 确认三个工具都已注册
-```
-
-## 迁移记录（本单以前 → 现在）
-
-| 旧路径 | 新路径 |
-|---|---|
-| `custom/tools/graphics/flow_image.py` | `custom/tools/image/flow_image.py` |
-| `custom/tools/music/flow_music.py` | `custom/tools/audio/flow_music.py` |
-| `custom/tools/video/flow_video.py` | 不变 |
-| `custom/tools/_sw.py` | `custom/plugins/studiowright/client.py` |
-
-仓内没有任何地方再引用旧路径，因此旧文件直接删除，没有留两份业务代码。
-`custom.tools.loader.load()` 由消费进程显式调用，注册三个 Flow 工具和本地
-`mymontage_piper_tts`。在仓库根目录用 `make -f custom/Makefile sw-tools` 检查
-Flow 注册结果。上游默认 `registry.discover()` 负责上游工具。

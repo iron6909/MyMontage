@@ -11,6 +11,7 @@ PYTHON     ?= $(VENV_DIR)/bin/python
 # chrome-cdp: the loopback DevTools endpoint the Flow tools preflight against.
 CHROME_CDP_UNIT := $(CUSTOM_DIR)/config/systemd/chrome-cdp.service
 USER_UNIT_DIR   ?= $(HOME)/.config/systemd/user
+STUDIOWRIGHT_REV := 5287c7a71d0d119c11b9c405ef835e32acf9daf6
 
 # Both scripts resolve tools.*, requirements.txt and out/ against the repo root,
 # so a call from anywhere else must fail loudly instead of writing custom/out/.
@@ -72,11 +73,11 @@ sample:
 
 # ── StudioWright / Google Flow ──────────────────────────────────────────────
 
-# Install the StudioWright CLI via uv (idempotent).
+# Install the fork with the Flow job and download contract.
 sw-install:
 	$(ROOT_GUARD)
 	@command -v uv >/dev/null 2>&1 || { echo "ERROR: uv is not on PATH. Install from https://docs.astral.sh/uv/"; exit 1; }
-	uv tool install git+https://github.com/umutkocak/studiowright
+	uv tool install "git+https://github.com/iron6909/studiowright@$(STUDIOWRIGHT_REV)"
 	@echo "StudioWright installed. Run: make -f custom/Makefile sw-auth-flow"
 
 # Authenticate Chrome for Google Flow (image + video).

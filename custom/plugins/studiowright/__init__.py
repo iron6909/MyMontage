@@ -1,11 +1,11 @@
 """custom/plugins/studiowright — StudioWright (`sw`) CLI route for Google Flow.
 
-`sw` (github.com/umutkocak/studiowright, installed locally with uv) drives the
+`sw` (github.com/iron6909/studiowright, installed locally with uv) drives the
 signed-in Chrome to reach Google Flow: images, video and Flow Music. There is no
 API key and no HTTP endpoint — the plugin shells out to `sw` and reads the one
 JSON object it prints (`sw ... --json`).
 
-Verified against StudioWright 0.2.13 (click-based CLI; `sw <cmd> --help`).
+The installed fork revision is pinned in custom/Makefile.
 
 Modules
 -------

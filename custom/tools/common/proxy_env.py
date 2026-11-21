@@ -1,21 +1,4 @@
-"""The environment handed to a StudioWright (`sw`) child process.
-
-`sw` reaches its own Chrome over loopback with `urllib`, which honours
-`HTTP(S)_PROXY` and `no_proxy`. A proxy exported without a loopback bypass sends
-that request off-box, the port looks dead, and `sw` fails with "Chrome did not
-open its debugging port" on a machine where the harness 9222 endpoint answers.
-
-So every `sw` child gets the *whole* parent env — `sw` needs Chrome, profile and
-proxy variables this repo knows nothing about — with loopback added to both
-`no_proxy` spellings:
-
-    from custom.tools.common.proxy_env import sw_env
-    subprocess.run(cmd, env=sw_env(), ...)
-
-Nothing else is rewritten. `CHROME_CDP_URL` in particular is passed through
-untouched: a remote endpoint stays remote, and the local 9222 default is a
-preflight default, never something this function invents.
-"""
+"""Pass the parent environment to StudioWright with loopback in both no-proxy variables."""
 
 from __future__ import annotations
 
