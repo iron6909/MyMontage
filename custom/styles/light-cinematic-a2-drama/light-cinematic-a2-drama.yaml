@@ -1,0 +1,200 @@
+---
+identity:
+  name: "Light Cinematic A2 Drama"
+  category: cinematic
+  mood: "warm, witty, human, lightly cinematic, twist-driven"
+  pace: moderate
+  best_for: >
+    2-3 minute vertical (9:16) CEFR A2 English twist short dramas and witty
+    slice-of-life stories (O. Henry, Chekhov, New Yorker Metropolitan Diary)
+    with bilingual EN-ZH word-by-word subtitles for Xiaohongshu and Douyin.
+
+visual_language:
+  color_palette:
+    primary: ["#1F354D", "#2D241E"]
+    accent: ["#F5B942", "#E88D67"]
+    background: "#141210"
+    text: "#F7F2E8"
+    muted: "#BFB3A2"
+  composition: >
+    9:16 vertical cinematic framing (1080x1920) with subjects in the upper
+    55% of the frame, clean headroom above top 260px, and uncluttered
+    lower-third staging so bilingual EN-ZH karaoke captions sit cleanly
+    inside the Xiaohongshu/Douyin safe zone without covering faces.
+  texture: >
+    Light-realistic 35mm indie-film look: natural soft window or street
+    light, subtle organic grain, gentle shallow depth of field, grounded
+    everyday wardrobe and urban props, expressive human faces without
+    plastic CGI gloss.
+
+typography:
+  headings:
+    font: "Plus Jakarta Sans"
+    weight: 700
+    tracking: "-0.01em"
+    line_height: 1.2
+  body:
+    font: "Noto Sans SC"
+    weight: 400
+    line_height: 1.45
+  code:
+    font: "JetBrains Mono"
+    weight: 500
+  stat_card:
+    font: "Plus Jakarta Sans"
+    weight: 700
+    size_multiplier: 2.2
+  scale_system: "major_third"
+  weight_matrix:
+    title: 700
+    heading: 700
+    body: 400
+    caption: 500
+
+motion:
+  transitions: [cut, crossfade, dissolve]
+  animation_style: >
+    GSAP power2.out filmic pacing; crisp 0.14s karaoke word pop with
+    restrained 1.06x active scale.
+  pacing_rules:
+    min_scene_hold_seconds: 2.5
+    max_scene_hold_seconds: 9.0
+    text_card_hold_seconds: 3.0
+    stat_card_hold_seconds: 3.0
+    transition_duration_seconds: 0.45
+  entrance: >
+    subtle filmic opacity fade + 6px vertical settle (0.35s, power2.out)
+  exit: "clean opacity fade-out + hard visibility kill at cue end"
+
+audio:
+  voice_style: >
+    Warm conversational CEFR A2 storytelling cadence (~115-130 WPM) with
+    crisp articulation, distinct narrator vs. character voices (Google
+    Cloud TTS Gemini-TTS primary via google_gemini_tts, OpenRouter TTS
+    fallback), and deliberate 0.3-0.7s comedic beats before punchlines.
+  music_mood: >
+    Playful warm indie chamber / light acoustic jazz piano & pizzicato
+    strings (flow_music Lyria 3.5 instrumental, 2:00-3:00), subtle
+    mischievous lift on the twist reveal.
+  music_volume: 0.16
+  sfx_style: >
+    natural diegetic room tone, cafe cup clink, street rain, subtle comic
+    beat
+  ducking_threshold_db: -14
+  voice_variation_allowed: true
+  hero_moment_voice_shift: >
+    brief 0.4s pause before the twist line, slightly slower and drier
+    delivery
+  transition_voice_shift: >
+    clean 0.35s breath pause between narrator and dialogue turns
+
+asset_generation:
+  image_prompt_prefix: >
+    Light-realistic indie short film still, 35mm cinema lens, natural warm
+    tungsten and soft daylight, subtle film grain, grounded contemporary
+    urban setting, authentic expressive facial acting, shallow depth of
+    field, upper-frame composition leaving breathing room in the lower
+    third,
+  image_negative_prompt: >
+    plastic skin, glossy 3D CGI, oversaturated neon, anime cel shading,
+    distorted hands, extra limbs, text overlays, watermarks, split-screen
+    borders, subtitles
+  consistency_anchors:
+    - >
+      Lock each recurring character via a 16:9 2K turnaround sheet
+      generated with flow_image (nano-banana-pro) before any scene shots
+    - >
+      Generate 9:16 storyboard frames with flow_image (nano-banana-2.1)
+      passing --ref to the character sheet(s) and location anchor
+    - >
+      Keep warm tungsten highlights (#F5B942) against muted slate/espresso
+      shadows (#1F354D / #2D241E) across every scene
+    - >
+      Keep character faces and eye lines in the upper 55% of the 9:16
+      frame so captions never occlude acting
+    - >
+      Maintain identical wardrobe, hairstyle, and props across setup,
+      escalation, and twist payoff shots
+  default_vignette: true
+
+overlays:
+  hero_title:
+    bg: "#141210CC"
+    text: "#F7F2E8"
+    accent: "#F5B942"
+    radius: 16
+  section_title:
+    bg: "#141210CC"
+    text: "#F7F2E8"
+    accent: "#F5B942"
+    radius: 12
+  key_term:
+    bg: "#1F354D"
+    border: "#F5B942"
+    text: "#F7F2E8"
+    highlight: "#F5B942"
+    radius: 10
+
+quality_rules:
+  - >
+    All dialogue and narration stay within CEFR A2 vocabulary with 3-5
+    highlighted reusable everyday expressions per episode
+  - >
+    Bilingual EN-ZH captions sit strictly inside the Xiaohongshu/Douyin
+    9:16 safe zone (bottom >= 480px, right >= 190px, top >= 260px, left >=
+    96px) with all reading text >= 28px
+  - >
+    English line displays word-by-word karaoke highlight synced to
+    transcribed word timestamps; Chinese translation stays aligned below
+  - >
+    Minimum WCAG AA contrast (4.5:1) on subtitle backdrops, speaker tags,
+    and key-expression cards
+  - >
+    Every recurring character has an approved nano-banana-pro turnaround
+    sheet referenced by nano-banana-2.1 storyboard frames
+  - >
+    Hero video clips via flow_video are quoted with --dry-run and bounded
+    with --max-credits before live submission
+
+taste_profile:
+  design_read: >
+    A witty 2-3 minute New Yorker / O. Henry pocket cinema short made for
+    Chinese English learners: warm 35mm realism that stops the scroll,
+    human comedic timing, and crystal-clear dual-language karaoke captions
+    that reward re-watching.
+  visual_variance: 6
+  motion_intensity: 5
+  information_density: 4
+  palette_discipline: >
+    Warm tungsten film amber against muted espresso/slate; one gold
+    highlight strictly reserved for active spoken words and key
+    expressions
+  layout_variation: >
+    Alternate wide establishing urban shots, over-the-shoulder dialogue
+    close-ups, reaction inserts, and prop close-ups that foreshadow the
+    twist
+  reference_strategy: >
+    Generate nano-banana-pro turnaround sheets first, then bind all
+    nano-banana-2.1 storyboards and flow_video clips to those references
+  anti_patterns:
+    - "No generic glossy AI-stock look or plastic symmetry"
+    - >
+      No subtitles colliding with Xiaohongshu/Douyin bottom caption bars
+      or right-hand icon rail
+    - "No walls of grammar explanation interrupting story momentum"
+    - "No sudden unmotivated camera shakes or cheesy transitions"
+  quality_gates:
+    - >
+      Character likeness and wardrobe stay consistent across setup and
+      twist reveal
+    - >
+      Every spoken English word aligns with its karaoke highlight and
+      Chinese line
+    - >
+      Comedic twist lands with clean audio timing and audible speech over
+      ducked BGM
+
+color_rules:
+  harmony_type: "complementary"
+  contrast_validation: true
+  colorblind_safe: true
