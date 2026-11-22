@@ -1,0 +1,188 @@
+{
+  "schema_version": "1.0",
+  "playbook": "english-short-drama",
+  "pipeline": "animation",
+  "visual_mode": "mixed",
+  "audio_architecture": "narrator_plus_characters",
+  "render_runtime": "hyperframes",
+  "composition_mode": "atelier",
+  "renderer_family": "animation-first",
+  "style_path": "custom/styles/light-cinematic-a2-drama/light-cinematic-a2-drama.yaml",
+  "episode": {
+    "id": "demo-the-wrong-umbrella",
+    "title_en": "The Wrong Umbrella",
+    "title_zh": "拿错的雨伞",
+    "cefr_level": "A2",
+    "genre": "metropolitan-diary-twist",
+    "target_platforms": ["xiaohongshu", "douyin"],
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "duration_seconds": 12.0,
+    "safe_zone": {
+      "top_px": 260,
+      "bottom_px": 480,
+      "left_px": 96,
+      "right_px": 190
+    }
+  },
+  "models": {
+    "character_sheet_image": {
+      "tool": "flow_image",
+      "model": "nano-banana-pro",
+      "aspect": "16:9",
+      "size": "2K"
+    },
+    "storyboard_image": {
+      "tool": "flow_image",
+      "model": "nano-banana-2.1",
+      "aspect": "9:16",
+      "size": "original"
+    },
+    "hero_video": {
+      "tool": "flow_video",
+      "model": "omni-flash-1.2",
+      "aspect": "9:16",
+      "require_dry_run_quote": true
+    },
+    "music": {
+      "tool": "flow_music",
+      "model": "lyria-3.5",
+      "format": "mp3",
+      "instrumental_only": true
+    },
+    "tts_primary": {
+      "tool": "google_gemini_tts",
+      "model": "gemini-2.5-flash-tts",
+      "backup_model": "gemini-3.8-flash-tts",
+      "region": "global"
+    },
+    "tts_fallback": {
+      "tool": "openrouter_audio",
+      "model": "mistralai/voxtral-mini-tts-2603",
+      "requires_user_approval": true
+    },
+    "word_alignment": {
+      "tool": "transcriber",
+      "provider": "faster_whisper",
+      "model": "base"
+    }
+  },
+  "characters": [
+    {
+      "id": "narrator",
+      "display_name": "Narrator",
+      "role": "narrator",
+      "voice_gemini_tts": "Orus",
+      "style_prompt": "Warm, dry, witty New Yorker storyteller speaking clearly at a gentle CEFR A2 pace.",
+      "voice_openrouter": "en_paul_neutral",
+      "accent_color": "#BFB3A2"
+    },
+    {
+      "id": "leo",
+      "display_name": "Leo",
+      "role": "protagonist",
+      "appearance_prompt": "Warm approachable man in his late 20s, slightly messy brown hair, beige trench coat, dark scarf, carrying a worn paperback book",
+      "turnaround_sheet": "assets/images/char_leo_sheet.png",
+      "turnaround_media_id": null,
+      "voice_gemini_tts": "Puck",
+      "style_prompt": "Friendly, slightly flustered young man with natural everyday American English at an easy A2 pace.",
+      "voice_openrouter": "en_paul_excited",
+      "accent_color": "#F5B942"
+    },
+    {
+      "id": "clara",
+      "display_name": "Clara",
+      "role": "foil",
+      "appearance_prompt": "Witty woman in her late 20s, shoulder-length dark hair, olive wool coat, round tortoiseshell glasses, warm amused smile",
+      "turnaround_sheet": "assets/images/char_clara_sheet.png",
+      "turnaround_media_id": null,
+      "voice_gemini_tts": "Callirrhoe",
+      "style_prompt": "Warm, amused, sharp-witted woman delivering a playful punchline clearly at CEFR A2 pace.",
+      "voice_openrouter": "en_emma_neutral",
+      "accent_color": "#E88D67"
+    }
+  ],
+  "bgm": {
+    "src": "",
+    "base_volume": 0.16,
+    "ducked_volume": 0.08,
+    "fade_in_seconds": 1.0,
+    "fade_out_seconds": 1.2
+  },
+  "scenes": [
+    {
+      "id": "scene_01",
+      "kind": "still",
+      "src": "assets/images/scene_01_cafe.png",
+      "start": 0.0,
+      "duration": 6.0,
+      "motion": "push-in",
+      "character_refs": ["leo"],
+      "storyboard_prompt": "Rainy evening outside a warm corner coffee shop in New York, Leo stepping out in a beige trench coat holding a bright yellow umbrella, 35mm film grain, upper-frame subject"
+    },
+    {
+      "id": "scene_02",
+      "kind": "video",
+      "src": "assets/video/scene_02_twist.mp4",
+      "start": 6.0,
+      "duration": 6.0,
+      "motion": "none",
+      "character_refs": ["leo", "clara"],
+      "storyboard_prompt": "Clara stepping under the awning with an amused smile, holding up a tiny pink polka-dot umbrella with Leo's initials on the handle, warm tungsten street reflection"
+    }
+  ],
+  "cues": [
+    {
+      "id": "cue_01",
+      "speaker_id": "narrator",
+      "audio_src": "",
+      "start": 0.4,
+      "end": 5.4,
+      "en": "It was raining hard, so Leo grabbed an umbrella by the door.",
+      "zh": "外面下着大雨，利奥顺手在门口拿了把伞。",
+      "key_phrase": {
+        "en": "grab an umbrella",
+        "zh": "顺手拿把伞"
+      },
+      "words": [
+        {"id": "w0", "text": "It", "start": 0.4, "end": 0.6},
+        {"id": "w1", "text": "was", "start": 0.6, "end": 0.85},
+        {"id": "w2", "text": "raining", "start": 0.85, "end": 1.35},
+        {"id": "w3", "text": "hard,", "start": 1.35, "end": 1.85},
+        {"id": "w4", "text": "so", "start": 2.0, "end": 2.25},
+        {"id": "w5", "text": "Leo", "start": 2.25, "end": 2.65},
+        {"id": "w6", "text": "grabbed", "start": 2.65, "end": 3.15, "highlight": true},
+        {"id": "w7", "text": "an", "start": 3.15, "end": 3.35, "highlight": true},
+        {"id": "w8", "text": "umbrella", "start": 3.35, "end": 4.05, "highlight": true},
+        {"id": "w9", "text": "by", "start": 4.1, "end": 4.35},
+        {"id": "w10", "text": "the", "start": 4.35, "end": 4.6},
+        {"id": "w11", "text": "door.", "start": 4.6, "end": 5.3}
+      ]
+    },
+    {
+      "id": "cue_02",
+      "speaker_id": "clara",
+      "audio_src": "",
+      "start": 6.4,
+      "end": 11.4,
+      "en": "Nice yellow umbrella. By the way, you took mine!",
+      "zh": "黄伞挺好看的。顺便说一句，你拿的是我的！",
+      "key_phrase": {
+        "en": "by the way",
+        "zh": "顺便说一句"
+      },
+      "words": [
+        {"id": "w12", "text": "Nice", "start": 6.4, "end": 6.8},
+        {"id": "w13", "text": "yellow", "start": 6.8, "end": 7.3},
+        {"id": "w14", "text": "umbrella.", "start": 7.3, "end": 8.05},
+        {"id": "w15", "text": "By", "start": 8.35, "end": 8.6, "highlight": true},
+        {"id": "w16", "text": "the", "start": 8.6, "end": 8.85, "highlight": true},
+        {"id": "w17", "text": "way,", "start": 8.85, "end": 9.35, "highlight": true},
+        {"id": "w18", "text": "you", "start": 9.5, "end": 9.8},
+        {"id": "w19", "text": "took", "start": 9.8, "end": 10.3},
+        {"id": "w20", "text": "mine!", "start": 10.3, "end": 11.3}
+      ]
+    }
+  ]
+}

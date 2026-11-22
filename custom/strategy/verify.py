@@ -22,6 +22,8 @@ TESTS = (
     "test_openrouter_audio.py",
     "test_openrouter_video.py",
     "test_piper_tts.py",
+    "test_english_short_drama_playbook.py",
+    "test_gemini_tts.py",
 )
 
 

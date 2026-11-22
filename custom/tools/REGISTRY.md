@@ -278,11 +278,28 @@ python3 -m custom.tools.video.openrouter_video \
 - fal / Harness：本仓没有安装它们的 Bot 插件，只按只读方式参照本地
   `tools/` 源码契约。
 
-## 本地 Piper
+## 本地 Piper 与 Google Cloud Gemini-TTS
 
 本地 Piper 使用 `mymontage_piper_tts`。在调用进程内执行
 `custom.tools.loader.load()` 后即可从工具注册表选用。安装和样例见
 [本地部署](../docs/LOCAL_DEPLOY.md#local-piper-provider)。
+
+Google Cloud TTS — Gemini-TTS 使用 `google_gemini_tts`（`custom/tools/audio/gemini_tts.py`），
+由 `custom.tools.loader.load()` 注册，也支持独立 CLI：
+
+```bash
+.venv/bin/python -m custom.tools.audio.gemini_tts --check-auth
+.venv/bin/python -m custom.tools.audio.gemini_tts \
+  --text "Nice umbrella. [short pause] By the way, you took mine!" \
+  --prompt "Speak warmly with playful amusement at a clear CEFR A2 pace." \
+  --voice Callirrhoe --output out/line.mp3 --dry-run
+```
+
+- 模型：
+  - Cloud TTS REST（`texttospeech.googleapis.com`）：`gemini-2.5-flash-tts`（默认）/ `gemini-2.5-pro-tts` / `gemini-2.5-flash-lite-preview-tts` / `gemini-3.1-flash-tts-preview`（内联标记用方括号 `[short pause]`）
+  - Gemini Enterprise Agent Platform API（`aiplatform.googleapis.com` `:generateContent`，备用高阶）：`gemini-3.8-flash-tts` / `gemini-3.8-flash-lite-tts`（内联标记用尖括号 `<short pause>`，服务端固定输出 24 kHz WAV，写 `.mp3`/`.ogg` 时由本机 ffmpeg 转码）
+- 鉴权：优先读环境变量或 `~/.harness/providers.env` 中的 `GOOGLE_APPLICATION_CREDENTIALS`（服务账号 JSON，需授予 `Agent Platform User` / `roles/aiplatform.user`，启用 `texttospeech.googleapis.com` 与 `aiplatform.googleapis.com`），其次回退到本机 `gcloud` ADC；可选 `GOOGLE_CLOUD_PROJECT`、`GOOGLE_TTS_REGION`（Cloud TTS 支持 `global`/`us`/`eu`/`northamerica-northeast1`，3.8 支持 `global`/`us`/`eu`）。
+- 支持单角色 `prompt` + 内联表演标记及 2 角色对话（`--turns-json` + `--speaker Alias=Voice`）；不含原生逐词时间戳。
 
 ## 相关文件
 
