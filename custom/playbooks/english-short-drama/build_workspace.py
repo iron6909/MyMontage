@@ -16,29 +16,15 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_STYLE_PATH = (
-    REPO_ROOT
-    / "custom"
-    / "styles"
-    / "light-cinematic-a2-drama"
-    / "light-cinematic-a2-drama.yaml"
-)
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from custom.styles.episode_style import episode_style_path, load_episode_style  # noqa: E402
 
 
 def _fmt_num(value: float) -> str:
     text = f"{float(value):.3f}".rstrip("0").rstrip(".")
     return text or "0"
-
-
-def _load_style(style_path: Path) -> dict[str, Any]:
-    if str(REPO_ROOT) not in sys.path:
-        sys.path.insert(0, str(REPO_ROOT))
-    from styles.playbook_loader import (  # pi-lens-ignore: reportMissingImports
-        load_playbook,
-    )
-
-    resolved = style_path.resolve()
-    return load_playbook(resolved.stem, styles_dir=resolved.parent)
 
 
 def _stage_asset(
@@ -82,16 +68,39 @@ def _stage_asset(
     return rel.as_posix(), False
 
 
-def _cue_words(cue: dict[str, Any]) -> list[dict[str, Any]]:
+def _effective_cover(spec: dict[str, Any]) -> tuple[float, str, str]:
+    """Return ``(cover_duration_seconds, cover_src, cover_kicker)``."""
+    cover = spec.get("cover") or {}
+    if not cover or cover.get("enabled") is False:
+        return 0.0, "", ""
+    dur = float(cover.get("duration_seconds", 2.0 if cover.get("enabled") else 0.0))
+    if dur <= 0:
+        return 0.0, "", ""
+    src = str(cover.get("src") or (spec.get("scenes") or [{}])[0].get("src") or "")
+    cefr = str((spec.get("episode") or {}).get("cefr_level", "A2"))
+    kicker = str(cover.get("kicker") or f"CEFR {cefr} · ENGLISH SHORT DRAMA")
+    return dur, src, kicker
+
+
+def _cue_words(cue: dict[str, Any], time_offset: float = 0.0) -> list[dict[str, Any]]:
     words = cue.get("words") or []
     if words:
-        return words
+        if time_offset == 0.0:
+            return words
+        return [
+            {
+                **w,
+                "start": round(float(w["start"]) + time_offset, 3),
+                "end": round(float(w["end"]) + time_offset, 3),
+            }
+            for w in words
+        ]
     # Fallback uniform timing only for draft previews before Whisper alignment.
     tokens = [tok for tok in str(cue.get("en", "")).split() if tok]
     if not tokens:
         return []
-    start = float(cue["start"])
-    end = float(cue["end"])
+    start = float(cue["start"]) + time_offset
+    end = float(cue["end"]) + time_offset
     step = max(0.05, (end - start) / len(tokens))
     return [
         {
@@ -112,15 +121,32 @@ def build_edit_decisions(
 ) -> dict[str, Any]:
     """Emit an upstream-schema-valid edit_decisions artifact for HyperFrames atelier."""
     palette = style["visual_language"]["color_palette"]
+    subtitle_background = palette["background"]
+    if subtitle_background.startswith("#") and len(subtitle_background) == 7:
+        subtitle_background += "D6"
     typography = style["typography"]
     audio_style = style["audio"]
     transition_dur = style["motion"]["pacing_rules"].get(
         "transition_duration_seconds", 0.45
     )
 
+    cover_dur, cover_src, _ = _effective_cover(spec)
     cuts: list[dict[str, Any]] = []
+    if cover_dur > 0:
+        cuts.append(
+            {
+                "id": "cover",
+                "source": cover_src or "placeholder:cover",
+                "in_seconds": 0.0,
+                "out_seconds": round(cover_dur, 3),
+                "layer": "primary",
+                "transition_in": "cut",
+                "transition_duration": 0,
+                "backgroundColor": palette["background"],
+            }
+        )
     for scene in spec.get("scenes", []):
-        start = float(scene["start"])
+        start = round(float(scene["start"]) + cover_dur, 3)
         duration = float(scene["duration"])
         cut: dict[str, Any] = {
             "id": str(scene["id"]),
@@ -141,8 +167,8 @@ def build_edit_decisions(
     narration_segments = [
         {
             "asset_id": str(cue["audio_src"]),
-            "start_seconds": float(cue["start"]),
-            "end_seconds": float(cue["end"]),
+            "start_seconds": round(float(cue["start"]) + cover_dur, 3),
+            "end_seconds": round(float(cue["end"]) + cover_dur, 3),
         }
         for cue in spec.get("cues", [])
         if cue.get("audio_src")
@@ -178,7 +204,7 @@ def build_edit_decisions(
             "font": f"{typography['headings']['font']}, {typography['body']['font']}",
             "font_size": 46,
             "color": palette["text"],
-            "background": "#141210D6",
+            "background": subtitle_background,
             "position": "bottom-center",
             "max_words_per_line": 7,
         },
@@ -212,7 +238,8 @@ def render_html(
     ep = spec["episode"]
     width = int(ep.get("width", 1080))
     height = int(ep.get("height", 1920))
-    duration = float(ep["duration_seconds"])
+    cover_dur, cover_src, cover_kicker = _effective_cover(spec)
+    duration = round(float(ep["duration_seconds"]) + cover_dur, 3)
     safe = ep.get("safe_zone") or {}
     safe_top = int(safe.get("top_px", 260))
     safe_bottom = int(safe.get("bottom_px", 480))
@@ -230,6 +257,8 @@ def render_html(
 
     headings_font = style["typography"]["headings"]["font"]
     body_font = style["typography"]["body"]["font"]
+    chinese_fonts = list(dict.fromkeys((body_font, "Noto Sans SC")))
+    chinese_font_stack = ", ".join(f'"{font}"' for font in chinese_fonts)
     vignette_enabled = bool(style["asset_generation"].get("default_vignette", True))
     default_bgm_vol = float(style["audio"].get("music_volume", 0.16))
 
@@ -240,7 +269,7 @@ def render_html(
     for idx, scene in enumerate(spec.get("scenes", [])):
         sid = str(scene["id"])
         kind = str(scene.get("kind", "still"))
-        start = float(scene["start"])
+        start = round(float(scene["start"]) + cover_dur, 3)
         sdur = float(scene["duration"])
         motion = str(scene.get("motion", "push-in" if kind == "still" else "none"))
         track = 1 + (idx % 2)
@@ -290,9 +319,9 @@ def render_html(
         speaker = characters.get(str(cue.get("speaker_id", "")), {})
         speaker_name = str(speaker.get("display_name") or cue.get("speaker_id") or "")
         speaker_color = str(speaker.get("accent_color") or accent_warm)
-        c_start = float(cue["start"])
-        c_end = float(cue["end"])
-        words = _cue_words(cue)
+        c_start = round(float(cue["start"]) + cover_dur, 3)
+        c_end = round(float(cue["end"]) + cover_dur, 3)
+        words = _cue_words(cue, time_offset=cover_dur)
         kp = cue.get("key_phrase") or {}
 
         word_spans = []
@@ -382,11 +411,34 @@ def render_html(
 
     title_en = escape(str(ep.get("title_en", "")))
     title_zh = escape(str(ep.get("title_zh", "")))
-    cefr = escape(str(ep.get("cefr_level", "A2")))
-    title_hold = min(3.6, duration)
     safe_width = max(320, width - safe_left - safe_right)
 
-    font_families = list(dict.fromkeys(f for f in (headings_font, body_font) if f))
+    cover_html = ""
+    if cover_dur > 0:
+        cover_rel, cover_exists = _stage_asset(
+            cover_src, workspace, assets_base, strict_media
+        )
+        cover_bg_html = (
+            f'        <img id="cover-bg-img" class="still-img cover-bg-img" '
+            f'src="{escape(cover_rel)}" alt="" />\n'
+            if cover_exists
+            else ""
+        )
+        cover_html = (
+            f'      <div id="cover-card" class="clip cover-layer" data-start="0" '
+            f'data-duration="{_fmt_num(cover_dur)}" data-track-index="8">\n'
+            f"{cover_bg_html}"
+            f'        <div class="cover-scrim"></div>\n'
+            f'        <div class="cover-content">\n'
+            f'          <div class="cover-kicker">{escape(cover_kicker)}</div>\n'
+            f'          <h1 class="cover-title-en">{title_en}</h1>\n'
+            f'          <div class="cover-divider"></div>\n'
+            f'          <div class="cover-title-zh">{title_zh}</div>\n'
+            f"        </div>\n"
+            f"      </div>\n"
+        )
+
+    font_families = dict.fromkeys((headings_font, *chinese_fonts))
     google_fonts_query = "&".join(
         f"family={f.replace(' ', '+')}:wght@400;500;700" for f in font_families
     )
@@ -405,7 +457,7 @@ def render_html(
             "scenes": scene_motion_js,
             "cues": cue_timeline_js,
             "bgm": bgm_js,
-            "titleHold": title_hold,
+            "coverDuration": cover_dur,
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")
@@ -427,7 +479,7 @@ def render_html(
         --text: {text_color};
         --muted: {muted_color};
         --font-en: "{headings_font}", sans-serif;
-        --font-zh: "{body_font}", sans-serif;
+        --font-zh: {chinese_font_stack}, sans-serif;
         --safe-top: {safe_top}px;
         --safe-bottom: {safe_bottom}px;
         --safe-left: {safe_left}px;
@@ -482,8 +534,8 @@ def render_html(
         width: 100%;
         padding: 36px;
         border-radius: 20px;
-        border: 2px solid rgba(245, 185, 66, 0.35);
-        background: rgba(20, 18, 16, 0.52);
+        border: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+        background: color-mix(in srgb, var(--bg) 52%, transparent);
       }}
       .placeholder-kicker {{
         font-size: 28px;
@@ -501,42 +553,79 @@ def render_html(
         z-index: 5;
         pointer-events: none;
         background:
-          linear-gradient(180deg, rgba(20,18,16,0.48) 0%, rgba(20,18,16,0) 24%,
-            rgba(20,18,16,0.12) 58%, rgba(20,18,16,0.78) 100%);
+          linear-gradient(180deg, color-mix(in srgb, var(--bg) 48%, transparent) 0%, transparent 24%,
+            color-mix(in srgb, var(--bg) 12%, transparent) 58%,
+            color-mix(in srgb, var(--bg) 78%, transparent) 100%);
       }}
-      .episode-badge-layer {{
-        z-index: 6;
-        padding: var(--safe-top) var(--safe-right) 0 var(--safe-left);
+      .cover-layer {{
+        z-index: 8;
+        background: var(--bg);
+        overflow: hidden;
+      }}
+      .cover-bg-img {{
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scale(1.04);
+      }}
+      .cover-scrim {{
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(180deg, color-mix(in srgb, var(--bg) 28%, transparent) 0%,
+            color-mix(in srgb, var(--bg) 18%, transparent) 38%,
+            color-mix(in srgb, var(--bg) 72%, transparent) 64%,
+            color-mix(in srgb, var(--bg) 92%, transparent) 100%);
+      }}
+      .cover-content {{
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
         display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
         align-items: flex-start;
-        gap: 14px;
-        pointer-events: none;
+        gap: 20px;
       }}
-      .badge-chip {{
+      .cover-kicker {{
         display: inline-flex;
         align-items: center;
-        padding: 10px 20px;
+        padding: 10px 22px;
         border-radius: 999px;
-        background: rgba(20, 18, 16, 0.82);
+        background: color-mix(in srgb, var(--bg) 84%, transparent);
         border: 2px solid var(--accent);
         color: var(--accent);
         font-size: 28px;
         font-weight: 700;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
       }}
-      .badge-title {{
-        padding: 10px 22px;
-        border-radius: 14px;
-        background: rgba(20, 18, 16, 0.78);
-        font-size: 28px;
+      .cover-title-en {{
+        margin: 0;
+        font-family: var(--font-en);
+        font-size: 92px;
         font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.02em;
         color: var(--text);
+        text-shadow: 0 6px 28px rgba(0, 0, 0, 0.72);
       }}
-      .badge-title-zh {{
-        margin-left: 10px;
+      .cover-divider {{
+        width: 88px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }}
+      .cover-title-zh {{
         font-family: var(--font-zh);
-        font-weight: 500;
-        color: var(--muted);
+        font-size: 62px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--accent);
+        text-shadow: 0 4px 22px rgba(0, 0, 0, 0.72);
       }}
       #caption-stage {{
         z-index: 7;
@@ -549,8 +638,8 @@ def render_html(
         bottom: var(--safe-bottom);
         padding: 26px 30px;
         border-radius: 22px;
-        background: rgba(20, 18, 16, 0.86);
-        border: 1.5px solid rgba(247, 242, 232, 0.16);
+        background: color-mix(in srgb, var(--bg) 86%, transparent);
+        border: 1.5px solid color-mix(in srgb, var(--text) 16%, transparent);
         box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
         opacity: 0;
         visibility: hidden;
@@ -588,7 +677,7 @@ def render_html(
         font-size: 46px;
         font-weight: 700;
         line-height: 1.32;
-        color: rgba(247, 242, 232, 0.62);
+        color: color-mix(in srgb, var(--text) 62%, transparent);
         display: flex;
         flex-wrap: wrap;
         column-gap: 12px;
@@ -627,11 +716,7 @@ def render_html(
     >
       <div id="bg-backdrop" class="clip bg-backdrop" data-start="0" data-duration="{_fmt_num(duration)}" data-track-index="0"></div>
 {chr(10).join(scene_nodes)}
-{vignette_html}      <div id="episode-badge" class="clip episode-badge-layer" data-start="0" data-duration="{_fmt_num(title_hold)}" data-track-index="6">
-        <span class="badge-chip">{cefr} STORY</span>
-        <span class="badge-title">{title_en}<span class="badge-title-zh">{title_zh}</span></span>
-      </div>
-      <section id="caption-stage" class="clip" data-start="0" data-duration="{_fmt_num(duration)}" data-track-index="7">
+{vignette_html}{cover_html}      <section id="caption-stage" class="clip" data-start="0" data-duration="{_fmt_num(duration)}" data-track-index="7">
 {chr(10).join(caption_nodes)}
       </section>
 {chr(10).join(audio_nodes)}
@@ -641,11 +726,10 @@ def render_html(
         const DATA = {payload_json};
         const tl = gsap.timeline({{ paused: true }});
 
-        // Opening episode badge gentle fade out
-        const badge = document.getElementById("episode-badge");
-        if (badge && DATA.titleHold > 0.6) {{
-          tl.fromTo(badge, {{ opacity: 0, y: -8 }}, {{ opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }}, 0);
-          tl.to(badge, {{ opacity: 0, y: -6, duration: 0.35, ease: "power2.in" }}, Math.max(0.4, DATA.titleHold - 0.35));
+        // Opening cover card (framework manages clip visibility via data-start/data-duration)
+        const coverImg = document.getElementById("cover-bg-img");
+        if (coverImg && DATA.coverDuration > 0) {{
+          tl.fromTo(coverImg, {{ scale: 1.04 }}, {{ scale: 1.0, duration: DATA.coverDuration, ease: "none" }}, 0);
         }}
 
         // Subtle filmic motion on still storyboards (no jarring jumps)
@@ -730,10 +814,8 @@ def build_workspace(
         spec = json.loads(spec_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"Failed to read episode spec {spec_path}: {exc}") from exc
-    resolved_style_path = style_path or (
-        REPO_ROOT / spec["style_path"] if spec.get("style_path") else DEFAULT_STYLE_PATH
-    )
-    style = _load_style(resolved_style_path)
+    resolved_style_path = style_path or episode_style_path(spec)
+    style = load_episode_style(resolved_style_path)
 
     workspace.mkdir(parents=True, exist_ok=True)
     html = render_html(
@@ -773,7 +855,7 @@ def main(argv: list[str] | None = None) -> int:
         "--style",
         type=Path,
         default=None,
-        help="Style YAML path (defaults to spec.style_path or light-cinematic-a2-drama.yaml)",
+        help="Style YAML path (defaults to spec.style_path or styles/anime-ghibli.yaml)",
     )
     parser.add_argument(
         "--assets-base",

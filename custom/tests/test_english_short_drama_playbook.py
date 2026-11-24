@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from unittest import TestCase, main
+from unittest import TestCase, main, skipUnless
+from unittest.mock import patch
 
 import jsonschema
 import yaml
@@ -19,6 +21,7 @@ STYLE_DIR = REPO_ROOT / "custom" / "styles" / "light-cinematic-a2-drama"
 STYLE_PATH = STYLE_DIR / "light-cinematic-a2-drama.yaml"
 TEMPLATE_PATH = PLAYBOOK_DIR / "template.json"
 BUILDER_PATH = PLAYBOOK_DIR / "build_workspace.py"
+COMPRESS_PATH = PLAYBOOK_DIR / "compress_publish.py"
 EDIT_DECISIONS_SCHEMA_PATH = REPO_ROOT / "schemas" / "artifacts" / "edit_decisions.schema.json"
 
 
@@ -34,17 +37,15 @@ class TestEnglishShortDramaPlaybook(TestCase):
     def test_style_playbook_schema_and_accessibility(self):
         from styles.playbook_loader import (  # pi-lens-ignore: reportMissingImports
             load_playbook,
-            validate_palette,
+            validate_contrast,
             validate_type_hierarchy,
         )
 
-        playbook = load_playbook("light-cinematic-a2-drama", styles_dir=STYLE_DIR)
-        self.assertEqual(playbook["identity"]["name"], "Light Cinematic A2 Drama")
-        self.assertEqual(playbook["identity"]["category"], "cinematic")
-
-        palette_issues = validate_palette(playbook)
-        blocking_palette = [i for i in palette_issues if i["severity"] in {"error", "warning"}]
-        self.assertEqual(blocking_palette, [], f"Unexpected palette issues: {blocking_palette}")
+        playbook = load_playbook("anime-ghibli")
+        self.assertEqual(playbook["identity"]["name"], "Anime Ghibli")
+        palette = playbook["visual_language"]["color_palette"]
+        for text in (palette["text"], palette["accent"][0]):
+            self.assertTrue(validate_contrast(text, palette["background"])["normal_text"]["AA"])
 
         type_issues = validate_type_hierarchy(playbook)
         blocking_type = [i for i in type_issues if i["severity"] in {"error", "warning"}]
@@ -54,6 +55,7 @@ class TestEnglishShortDramaPlaybook(TestCase):
         doc = (PLAYBOOK_DIR / "PLAYBOOK.md").read_text(encoding="utf-8")
         for token in (
             "pipeline_defs/animation.yaml",
+            "styles/anime-ghibli.yaml",
             "nano-banana-pro",
             "nano-banana-2.1",
             "flow_video",
@@ -67,6 +69,7 @@ class TestEnglishShortDramaPlaybook(TestCase):
             self.assertIn(token, doc)
 
         spec = json.loads(TEMPLATE_PATH.read_text(encoding="utf-8"))
+        self.assertEqual(spec["style_path"], "styles/anime-ghibli.yaml")
         self.assertEqual(spec["pipeline"], "animation")
         self.assertEqual(spec["visual_mode"], "mixed")
         self.assertEqual(spec["audio_architecture"], "narrator_plus_characters")
@@ -91,8 +94,6 @@ class TestEnglishShortDramaPlaybook(TestCase):
                     str(BUILDER_PATH),
                     "--spec",
                     str(TEMPLATE_PATH),
-                    "--style",
-                    str(STYLE_PATH),
                     "--workspace",
                     str(workspace),
                     "--emit-edit-decisions",
@@ -105,20 +106,21 @@ class TestEnglishShortDramaPlaybook(TestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             summary = json.loads(proc.stdout)
-            self.assertEqual(summary["style_name"], "Light Cinematic A2 Drama")
+            self.assertEqual(summary["style_name"], "Anime Ghibli")
 
             html = (workspace / "index.html").read_text(encoding="utf-8")
             self.assertIn('data-composition-id="main"', html)
             self.assertIn('data-width="1080"', html)
             self.assertIn('data-height="1920"', html)
-            self.assertIn("--bg: #141210;", html)
-            self.assertIn("--accent: #F5B942;", html)
-            self.assertIn('--font-en: "Plus Jakarta Sans"', html)
-            self.assertIn('--font-zh: "Noto Sans SC"', html)
+            self.assertIn("--bg: #0A0A1A;", html)
+            self.assertIn("--accent: #FFB347;", html)
+            self.assertIn('--font-en: "Noto Serif JP"', html)
+            self.assertIn('--font-zh: "Noto Sans", "Noto Sans SC", sans-serif;', html)
             self.assertIn("--safe-bottom: 480px;", html)
             self.assertIn("--safe-right: 190px;", html)
             self.assertIn('class="caption-word is-key"', html)
             self.assertIn('class="caption-zh"', html)
+            self.assertNotIn('id="episode-badge"', html)
             self.assertIn('window.__timelines["main"] = tl;', html)
 
             edit_decisions = json.loads(edit_decisions_path.read_text(encoding="utf-8"))
@@ -127,8 +129,9 @@ class TestEnglishShortDramaPlaybook(TestCase):
             self.assertEqual(edit_decisions["composition_mode"], "atelier")
             self.assertEqual(
                 edit_decisions["bespoke"]["art_direction"],
-                "custom/styles/light-cinematic-a2-drama/light-cinematic-a2-drama.yaml",
+                "styles/anime-ghibli.yaml",
             )
+            self.assertEqual(edit_decisions["subtitles"]["background"], "#0A0A1AD6")
 
     def test_staged_media_strict_guard_and_style_override(self):
         builder = _load_builder_module()
@@ -199,6 +202,190 @@ class TestEnglishShortDramaPlaybook(TestCase):
                     assets_base=project_dir,
                     strict_media=False,
                 )
+
+    def test_cover_card_shifts_timeline_and_edit_decisions(self):
+        builder = _load_builder_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            spec = json.loads(TEMPLATE_PATH.read_text(encoding="utf-8"))
+            spec.pop("style_path")
+            orig_dur = float(spec["episode"]["duration_seconds"])
+            orig_scene0_start = float(spec["scenes"][0]["start"])
+            orig_cue0_start = float(spec["cues"][0]["start"])
+            spec["cover"] = {
+                "enabled": True,
+                "duration_seconds": 2.0,
+                "src": "assets/images/scene_01_cafe.png",
+                "kicker": "CEFR A2 · ENGLISH SHORT DRAMA",
+            }
+            spec_path = root / "episode_cover.json"
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+
+            workspace = root / "hf_cover"
+            ed_path = root / "edit_decisions.json"
+            builder.build_workspace(
+                spec_path=spec_path,
+                workspace=workspace,
+                emit_edit_decisions=ed_path,
+            )
+            html = (workspace / "index.html").read_text(encoding="utf-8")
+            self.assertIn('id="cover-card"', html)
+            self.assertIn('class="cover-title-en"', html)
+            self.assertIn('class="cover-title-zh"', html)
+            self.assertNotIn('id="episode-badge"', html)
+            self.assertIn(f'data-duration="{round(orig_dur + 2.0, 3):g}"', html)
+            self.assertIn(
+                f'id="scene-{spec["scenes"][0]["id"]}" class="clip scene-placeholder" '
+                f'data-start="{round(orig_scene0_start + 2.0, 3):g}"',
+                html,
+            )
+
+            ed = json.loads(ed_path.read_text(encoding="utf-8"))
+            self.assertEqual(ed["bespoke"]["art_direction"], "styles/anime-ghibli.yaml")
+            self.assertEqual(ed["cuts"][0]["id"], "cover")
+            self.assertEqual(ed["cuts"][0]["out_seconds"], 2.0)
+            self.assertEqual(ed["cuts"][1]["in_seconds"], round(orig_scene0_start + 2.0, 3))
+            if ed.get("audio", {}).get("narration", {}).get("segments"):
+                self.assertEqual(
+                    ed["audio"]["narration"]["segments"][0]["start_seconds"],
+                    round(orig_cue0_start + 2.0, 3),
+                )
+
+
+@skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe"), "FFmpeg and ffprobe required")
+class TestPublishCompression(TestCase):
+    def test_cli_selects_smaller_publish_video_and_preserves_master(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp).resolve()
+            renders = project / "renders"
+            renders.mkdir()
+            master = renders / "final.mp4"
+            command = [sys.executable, str(COMPRESS_PATH), "--project-dir", str(project)]
+
+            for source_crf, status in ((0, "compressed"), (42, "master_is_smaller_or_equal")):
+                with self.subTest(source_crf=source_crf):
+                    subprocess.run([
+                        "ffmpeg", "-v", "error", "-y",
+                        "-f", "lavfi", "-i", "testsrc2=size=180x320:rate=30",
+                        "-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000",
+                        "-t", "1", "-c:v", "libx264", "-crf", str(source_crf),
+                        "-c:a", "aac", "-b:a", "192k", str(master),
+                    ], check=True, capture_output=True, text=True, timeout=30)
+                    master_bytes = master.read_bytes()
+                    run = subprocess.run(command, cwd=REPO_ROOT, capture_output=True, text=True, timeout=30)
+                    self.assertEqual(run.returncode, 0, run.stderr)
+                    report = json.loads(run.stdout)
+                    self.assertEqual(report["status"], status)
+                    published = Path(report["publish"]["path"])
+                    self.assertEqual(report["publish"]["resolution"], "180x320")
+                    self.assertEqual(report["publish"]["fps"], 30)
+                    self.assertEqual(report["publish"]["audio_codec"], "aac")
+                    self.assertEqual(master.read_bytes(), master_bytes)
+                    if status == "compressed":
+                        self.assertEqual(published, renders / "final-publish.mp4")
+                        self.assertEqual(report["saved_bytes"], len(master_bytes) - published.stat().st_size)
+                        self.assertGreater(report["saved_bytes"], 0)
+                    else:
+                        self.assertEqual(published, master)
+                        self.assertEqual(report["saved_bytes"], 0)
+
+
+class TestFlowStoryboardResume(TestCase):
+    project = "00000000-0000-4000-8000-000000000001"
+    media_id = "00000000-0000-4000-8000-000000000002"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name).resolve()
+        self.spec_path = self.root / "artifacts" / "episode_spec.json"
+        self.spec_path.parent.mkdir()
+        self.spec = json.loads(TEMPLATE_PATH.read_text(encoding="utf-8"))
+        self.spec.update(flow_project_id=self.project, flow_profile="drama")
+        self.leo = next(c for c in self.spec["characters"] if c["id"] == "leo")
+        self.leo["turnaround_media_id"] = self.media_id
+        self.clara = next(c for c in self.spec["characters"] if c["id"] == "clara")
+        self.clara["turnaround_sheet"] = "assets/images/char_clara_sheet.png"
+        self.clara_sheet = self.root / self.clara["turnaround_sheet"]
+        self.clara_sheet.parent.mkdir(parents=True)
+        self.clara_sheet.write_bytes(b"placeholder for the offline command check")
+        self.inputs = {"episode_spec": str(self.spec_path), "scene_id": "scene_02"}
+
+    def _write_spec(self):
+        self.spec_path.write_text(json.dumps(self.spec), encoding="utf-8")
+
+    def test_cli_plan_and_execution_use_same_episode_context(self):
+        from custom.tools.image.flow_image import FlowImage
+
+        self._write_spec()
+        result = subprocess.run(
+            [sys.executable, "-m", "custom.plugins.studiowright", "image",
+             "--episode-spec", str(self.spec_path), "--scene-id", "scene_02", "--plan"],
+            cwd=REPO_ROOT,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        command = json.loads(result.stdout)["command"]
+        self.assertEqual(command[1:3], ["--profile", "drama"])
+        self.assertEqual(command[command.index("--project") + 1], self.project)
+        self.assertEqual(command[command.index("--aspect") + 1], "9:16")
+        self.assertEqual(command[command.index("--out") + 1], str(self.root / "assets/images/scene_02"))
+        self.assertEqual(
+            [command[index + 1] for index, arg in enumerate(command) if arg == "--ref"],
+            [self.media_id, str(self.clara_sheet)],
+        )
+        self.assertIn("Reference image 1: Leo.\nReference image 2: Clara.", command[-1])
+        self.assertIn("hand-painted watercolor aesthetic", command[-1])
+        self.assertIn("Avoid: photorealistic", command[-1])
+        self.assertIn(self.spec["scenes"][1]["storyboard_prompt"], command[-1])
+
+        with patch("custom.tools.image.flow_image._sw_binary", return_value="/mock/bin/sw"), patch(
+            "custom.tools.image.flow_image.invoke"
+        ) as invoke:
+            FlowImage().execute(self.inputs)
+            self.assertEqual(invoke.call_args.args[0][1:], command[1:])
+            self.assertEqual(invoke.call_args.kwargs["metadata"]["ref_paths"],
+                             [self.media_id, str(self.clara_sheet)])
+
+    def test_legacy_project_and_asset_ids_use_existing_manifest(self):
+        from custom.tools.image.flow_image import FlowImage
+
+        self.spec.pop("flow_project_id")
+        self.spec.pop("flow_profile")
+        self.spec["style_path"] = str(STYLE_PATH.relative_to(REPO_ROOT))
+        self.spec["scenes"][1]["character_refs"] = ["char_clara", "leo"]
+        self.spec["scenes"][1].pop("storyboard_prompt")
+        self._write_spec()
+        self.spec_path.with_name("asset_manifest.json").write_text(json.dumps({
+            "metadata": {"flow_project_id": self.project},
+            "assets": [{
+                "id": "char_clara",
+                "path": self.clara["turnaround_sheet"],
+                "subtype": "character_turnaround_sheet",
+            }],
+        }), encoding="utf-8")
+
+        result = FlowImage().execute({**self.inputs, "prompt": "A close-up by the awning.", "dry_run": True})
+        self.assertTrue(result.success, result.error)
+        self.assertEqual(result.data["project_id"], self.project)
+        self.assertEqual(result.data["ref_paths"], [str(self.clara_sheet), self.media_id])
+        self.assertIn("Light-realistic indie short film still", result.data["prompt"])
+
+    def test_missing_or_conflicting_references_do_not_submit(self):
+        from custom.tools.image.flow_image import FlowImage
+
+        self._write_spec()
+        tool = FlowImage()
+        with patch("custom.tools.image.flow_image.invoke") as invoke:
+            self.assertIn("differs", tool.execute({**self.inputs, "project": self.media_id}).error)
+            self.assertIn("differs", tool.execute({**self.inputs, "profile": "other"}).error)
+            self.clara_sheet.unlink()
+            self.assertIn("clara", tool.execute(self.inputs).error)
+            self.spec["scenes"][1].pop("character_refs")
+            self._write_spec()
+            self.assertIn("must declare character_refs", tool.execute(self.inputs).error)
+            invoke.assert_not_called()
 
 
 if __name__ == "__main__":

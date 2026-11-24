@@ -25,4 +25,6 @@ MyMontage 以 OpenMontage 为上游。先读仓库根目录的 `AGENT_GUIDE.md`�
 | 风格 | `custom/styles/<style_name>/` | 新增风格要由下游配置或调用方传入渲染器。YAML 风格可由调用方通过 `load_playbook(..., styles_dir=...)` 显式加载。使用实际渲染入口验证样式配置生效。 |
 | 依赖和命令 | `custom/requirements.txt`、`custom/Makefile` | 本地安装与 CI 安装同时读取上游和下游依赖。从仓根用 `make -f custom/Makefile <target>` 调用。 |
 
+续做英语短剧单集时，先读[剧本制作手册](playbooks/english-short-drama/PLAYBOOK.md#flow-跨会话续做)，从原项目的检查点和 `artifacts/episode_spec.json` 恢复。Flow 分镜出图使用 `flow_image` 的 `episode_spec` 和 `scene_id` 入口，按镜头加载已登记的角色参考图。
+
 部署入口见 [本地 CPU 部署](docs/LOCAL_DEPLOY.md)与 [Flow 部署](docs/FLOW.md)。
