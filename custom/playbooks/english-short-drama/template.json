@@ -7,7 +7,9 @@
   "render_runtime": "hyperframes",
   "composition_mode": "atelier",
   "renderer_family": "animation-first",
-  "style_path": "custom/styles/light-cinematic-a2-drama/light-cinematic-a2-drama.yaml",
+  "style_path": "styles/anime-ghibli.yaml",
+  "flow_project_id": null,
+  "flow_profile": "default",
   "episode": {
     "id": "demo-the-wrong-umbrella",
     "title_en": "The Wrong Umbrella",
@@ -25,6 +27,12 @@
       "left_px": 96,
       "right_px": 190
     }
+  },
+  "cover": {
+    "enabled": true,
+    "duration_seconds": 2.0,
+    "src": "assets/images/scene_01_cafe.png",
+    "kicker": "CEFR A2 · ENGLISH SHORT DRAMA"
   },
   "models": {
     "character_sheet_image": {
@@ -76,31 +84,31 @@
       "voice_gemini_tts": "Orus",
       "style_prompt": "Warm, dry, witty New Yorker storyteller speaking clearly at a gentle CEFR A2 pace.",
       "voice_openrouter": "en_paul_neutral",
-      "accent_color": "#BFB3A2"
+      "accent_color": "#A8E6CF"
     },
     {
       "id": "leo",
       "display_name": "Leo",
       "role": "protagonist",
       "appearance_prompt": "Warm approachable man in his late 20s, slightly messy brown hair, beige trench coat, dark scarf, carrying a worn paperback book",
-      "turnaround_sheet": "assets/images/char_leo_sheet.png",
+      "turnaround_sheet": null,
       "turnaround_media_id": null,
       "voice_gemini_tts": "Puck",
       "style_prompt": "Friendly, slightly flustered young man with natural everyday American English at an easy A2 pace.",
       "voice_openrouter": "en_paul_excited",
-      "accent_color": "#F5B942"
+      "accent_color": "#FFB347"
     },
     {
       "id": "clara",
       "display_name": "Clara",
       "role": "foil",
       "appearance_prompt": "Witty woman in her late 20s, shoulder-length dark hair, olive wool coat, round tortoiseshell glasses, warm amused smile",
-      "turnaround_sheet": "assets/images/char_clara_sheet.png",
+      "turnaround_sheet": null,
       "turnaround_media_id": null,
       "voice_gemini_tts": "Callirrhoe",
       "style_prompt": "Warm, amused, sharp-witted woman delivering a playful punchline clearly at CEFR A2 pace.",
       "voice_openrouter": "en_emma_neutral",
-      "accent_color": "#E88D67"
+      "accent_color": "#FF6B9D"
     }
   ],
   "bgm": {
@@ -119,7 +127,7 @@
       "duration": 6.0,
       "motion": "push-in",
       "character_refs": ["leo"],
-      "storyboard_prompt": "Rainy evening outside a warm corner coffee shop in New York, Leo stepping out in a beige trench coat holding a bright yellow umbrella, 35mm film grain, upper-frame subject"
+      "storyboard_prompt": "Rainy evening outside a New York corner coffee shop. Leo steps out in a beige trench coat holding a bright yellow umbrella. Soft window light reflects in rain puddles beside the planter. Frame Leo in the upper half with room for subtitles below."
     },
     {
       "id": "scene_02",
@@ -129,7 +137,7 @@
       "duration": 6.0,
       "motion": "none",
       "character_refs": ["leo", "clara"],
-      "storyboard_prompt": "Clara stepping under the awning with an amused smile, holding up a tiny pink polka-dot umbrella with Leo's initials on the handle, warm tungsten street reflection"
+      "storyboard_prompt": "Under the same awning, Clara holds up a tiny pink polka-dot umbrella with Leo's initials on the handle, smiling at Leo. Frame both faces in the upper half. Rain streaks and warm shop-window reflections soften the background."
     }
   ],
   "cues": [

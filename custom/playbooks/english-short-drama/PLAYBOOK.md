@@ -1,4 +1,4 @@
-# English Short Drama Playbook（A2 轻写实电影感反转短剧）
+# English Short Drama Playbook（A2 Anime Ghibli 反转短剧）
 
 面向 **小红书 + 抖音英语学习号** 的 **2~3 分钟（120~180 秒）9:16 竖屏英语短剧 / 短故事** 复用剧本模板，绑定 OpenMontage 上游 `animation` 管线与 MyMontage 下游自定义工具链。
 
@@ -10,19 +10,19 @@
 | 音频架构 | `narrator_plus_characters`（旁白 + 多角色对话） |
 | 合成运行时 | `render_runtime: hyperframes`（`composition_mode: atelier`，`renderer_family: animation-first`） |
 | 画面规格 | `1080x1920`（9:16 竖屏），`30fps` |
-| 风格 YAML | `custom/styles/light-cinematic-a2-drama/light-cinematic-a2-drama.yaml` |
+| 默认风格 YAML | `styles/anime-ghibli.yaml`（Anime Ghibli） |
 | 剧集模板 JSON | `custom/playbooks/english-short-drama/template.json` |
 | 工作区生成器 | `custom/playbooks/english-short-drama/build_workspace.py` |
+| 发布版压缩入口 | `custom/playbooks/english-short-drama/compress_publish.py` |
 | 单集产出目录 | `projects/<project-id>/`（gitignored，遵循 `AGENT_GUIDE.md` 工作区契约） |
 
-显式加载风格与构建 HyperFrames 工作区：
+用单集规格中的 `style_path` 构建 HyperFrames 工作区。新集使用 Anime Ghibli。
 
 ```bash
 .venv/bin/python custom/playbooks/english-short-drama/build_workspace.py \
-  --spec projects/<project-id>/artifacts/episode_spec.json \
-  --style custom/styles/light-cinematic-a2-drama/light-cinematic-a2-drama.yaml \
-  --workspace projects/<project-id>/hyperframes \
-  --emit-edit-decisions projects/<project-id>/artifacts/edit_decisions.json
+  --spec "projects/${PROJECT_ID}/artifacts/episode_spec.json" \
+  --workspace "projects/${PROJECT_ID}/hyperframes" \
+  --emit-edit-decisions "projects/${PROJECT_ID}/artifacts/edit_decisions.json"
 ```
 
 ---
@@ -41,7 +41,8 @@
 4. **A2 日常语境误会（Everyday Misunderstanding）**：因双关词或生活习语产生的连锁误会，顺带自然教会该表达。
 
 ### 150 秒竖屏留存节奏
-- **0:00–0:06 冷开场钩子（Cold Open）**：直接抛出反常画面或悬念一句（不放冗长片头 Logo）。
+- **0:00–0:02 双语封面标题卡（Cover Card，必选）**：停留 **2.0 秒**，在安全区内呈现英文片名（`Noto Serif JP`，`92px`）、中文片名（`62px`，汉字使用 `Noto Sans SC` 字形回退）和 `CEFR A2` 角标。BGM 同步淡入，随后切入剧情；正片画面上方**不再叠加**额外短剧标题条。
+- **0:02–0:08 冷开场钩子（Cold Open）**：直接抛出反常画面或悬念一句（不放冗长片头 Logo）。
 - **0:06–0:40 建置（Setup）**：确立人物目标、场景氛围与一个看似不起眼的伏笔道具。
 - **0:40–1:45 升级（Escalation，2~3 拍对话交锋）**：冲突或误会层层加码，每 5~9 秒切景别/反应镜头。
 - **1:45–2:15 反转落地（Twist Reveal）**：停顿 0.4s，用最简短的一句台词+反打镜头揭开谜底。
@@ -57,16 +58,35 @@
 | 用途 | 选定模型 | 推荐参数 | 选型理由 |
 | --- | --- | --- | --- |
 | **角色三视图 / 设定图** | `nano-banana-pro` | `--aspect 16:9 --size 2K` | 细节解析力与五官/服装结构稳定性最强；每名常驻角色先出一张干净中性光的三视图（正面、3/4 侧、侧面 + 2 个关键微表情），记录本地路径与 Flow `media_id` 作为全片唯一锚点 |
-| **9:16 分镜关键帧** | `nano-banana-2.1` | `--aspect 9:16 --ref <角色三视图> [--ref <场景锚点图>]` | 日常免费额度充足、出图快且多参考图一致性好；用于批量产出 12~20 张竖屏分镜图，人物脸部统一构图在画面上 55% 区域，为下方双语字幕留白 |
+| **9:16 分镜关键帧** | `nano-banana-2.1` | `--episode-spec <单集规格> --scene-id <镜头 ID> [--ref <场景锚点图>]` | 用于批量产出 12~20 张竖屏分镜图，人物脸部统一构图在画面上 55% 区域，为下方双语字幕留白 |
 | **快速构图草图（可选）** | `nano-banana-2-lite` | `--aspect 9:16` | 仅在构图拿不准时做低成本快速试拍，不用于终稿镜头 |
 
-> 提示词必须叠加 `light-cinematic-a2-drama.yaml` 的 `asset_generation.image_prompt_prefix` 与 `consistency_anchors`，严禁生成画面内文字或硬烧字幕。
+角色沿用剧本中的外貌和服装设定，人物和场景统一采用手绘水彩质感。用柔和漫射光、森林绿和暖金保持跨镜头呼应。都市镜头可以用盆栽、雨水或天空体现自然元素，保留前景、中景和背景的层次。
+
+角色三视图使用单集 `style_path` 中的 `asset_generation.image_prompt_prefix` 和 `image_negative_prompt`，在中性背景上保留水彩笔触。分镜入口会自动读取同一份风格配置并加入这两项，`storyboard_prompt` 填本镜头的构图、动作和布景。双语字幕在合成阶段叠加。
+
+#### Flow 跨会话续做
+
+1. **分镜阶段建立单集规格。** 在原项目的 `artifacts/episode_spec.json` 保留角色 `characters[].id`、每个镜头的 `scenes[].storyboard_prompt` 和按图排列的 `scenes[].character_refs`。引用使用实际出镜角色的 ID，纯空镜填 `[]`。选定 Flow 项目后记录 `flow_project_id` 和实际使用的 `flow_profile`。
+2. **小样阶段登记参考图。** 三视图使用同一个 Flow 项目和 profile。保存图像到本集 `assets/images/`，把相对项目路径 `turnaround_sheet` 和 Flow 返回的 `turnaround_media_id` 写入对应角色。用这套参考图生成分镜小样。小样获批后沿用同一组参考图补全其余镜头。每张完成的分镜在资产检查点中登记镜头 ID、输出路径、参考图和 Flow job ID，便于下一会话跳过已完成的镜头并查回未交付的任务。
+3. **续做时加载原项目。** 依照上游 checkpoint protocol 读取阶段和 `metadata.partial_progress`，再用下列入口检查每个待做镜头。工具固定该集的 Flow 项目及 profile，按镜头顺序附上角色参考图，并在提示词里对应角色名。角色优先使用已登记的 Flow media ID，只有本地三视图时使用原图文件。缺少项目、角色或有效参考图时，工具在提交前报错。旧项目可从同目录的 `asset_manifest.json` 读取已登记的项目 ID 及三视图资产 ID。旧镜头如未存提示词，可用 `--prompt` 传入本镜头的描述。
+
+```bash
+.venv/bin/python -m custom.plugins.studiowright image \
+  --episode-spec "projects/${PROJECT_ID}/artifacts/episode_spec.json" \
+  --scene-id scene_04 --plan
+```
+
+核对 `--project`、`--profile` 和每项 `--ref` 后，在已批准的生产阶段移除 `--plan` 提交。默认输出到 `assets/images/<scene-id>/`。生成后把成图与三视图并排核对脸型、发型、服装、配饰及多人镜头的身份归属。发生偏移时从相同参考图修正该镜头。Flow 中原 media ID 无法再附加时，确认本地原图与已批准的三视图一致后清空该 media ID，再用本地原图重试。
+
+若某个镜头已批准单独的造型参考图，在规格中为该造型登记独立 ID，并在该镜头的 `character_refs` 中引用。旧集重做前，先对照资产检查点中的实际参考图，补录获批的镜头专用参考图。
 
 ### B. 关键表演动态镜头（Google Flow · `flow_video`）
 - **混排比例（`mixed` 模式）**：推荐 **40%~60% 核心表演/反转镜头用 `flow_video`**（6~10 条 4~8s 片段），其余 **40%~60% 过渡/反应/道具镜头用 `nano-banana-2.1` 分镜图 + HyperFrames 电影感微运镜（缓慢推近/平移/淡入淡出）**，既保住短片动感又控制 Flow 视频额度。
 - **模型与绑定方式**：
   - 人物微表情与对话动作：`omni-flash-1.2`（支持 `3–15s`、`--aspect 9:16`、`--start <分镜图> [--end <下一分镜>] [--ref <角色三视图>]`）。
   - 城市空镜 / 氛围建立：`veo-lite`（`--duration 8 --aspect 9:16`）。
+- 动态镜头沿用分镜的水彩笔触、柔光和配色。人物镜头用已确认的 Anime Ghibli 分镜作首帧，运镜与表演围绕镜头内容展开。
 - **硬性额度保护**：提交任何正式视频生成前，**必须先跑 `--dry-run` 查询 Flow 实时报价**，并在正式命令中传入 `--max-credits <上限>`。
 
 ### C. 背景音乐（Google Flow Music · `flow_music`）
@@ -103,8 +123,8 @@
    - **手机端可读字号下限**：全部标签、说话人徽章、词汇角标字号 `>= 28px`。
 3. **双语逐词呈现规范**：
    - 顶部轻量说话人色标（如 `Narrator` / `Leo` / `Clara`）+ 可选 A2 重点词条（`key_phrase`）。
-   - 第一行：英文逐词卡拉 OK 高亮（当前词变暖金 `#F5B942` + 1.06x 柔和弹出，已读词纯暖白 `#F7F2E8`，未读词半透）。
-   - 第二行：同步中文译文（`Noto Sans SC`，柔和暖白，不喧宾夺主）。
+   - 第一行：英文逐词卡拉 OK 高亮（当前词用暖金 `#FFB347` + 1.06x 柔和弹出，已读词用暖白 `#F5F0E8`，未读词半透）。
+   - 第二行：同步中文译文（暖白 `#F5F0E8`，汉字使用 `Noto Sans SC` 字形回退）。
 
 ---
 
@@ -112,9 +132,22 @@
 
 1. `research`：收集选材原型与 A2 表达语料 → `research_brief.json`
 2. `proposal` **[人工审批]**：3 个反转故事备选、确认 `render_runtime=hyperframes` / `composition_mode=atelier`、工具与额度预估 → `proposal_packet.json` + `decision_log.json`
-3. `script` **[人工审批]**：完整英汉双语台词、角色音色分配、停顿提示与 A2 重点表达 → `script.json`
-4. `scene_plan` **[人工审批]**：镜头表（标注 `still` / `video`、景别、运镜、所需参考图） → `scene_plan.json`
-5. `assets` **[人工审批]**：先小样（1 张角色三视图 + 1 张分镜 + 2 句配音）→ 获批后批量出图/出视频/出配乐/逐词对齐 → `asset_manifest.json` + `episode_spec.json`
+3. `script` **[人工审批]**：完整英汉双语台词、**2.0 秒英汉大字封面定义**（`cover.duration_seconds: 2.0`、`title_en`、`title_zh`）、角色音色分配、停顿提示与 A2 重点表达 → `script.json`
+4. `scene_plan` **[人工审批]**：镜头表（标注 `still` / `video`、景别、运镜、所需参考图）→ `scene_plan.json` + `episode_spec.json` 初稿
+5. `assets` **[人工审批]**：先小样（1 张角色三视图 + 1 张分镜 + 2 句配音）→ 获批后批量出图/出视频/出配乐/逐词对齐 → `asset_manifest.json` + 更新后的 `episode_spec.json`
 6. `edit`：调用 `build_workspace.py` 生成 `hyperframes/index.html` 与 `edit_decisions.json`
-7. `compose`：执行 `npx hyperframes lint`、`validate`、`inspect`、`snapshot` 抽帧目检 → 通过 `video_compose` / `hyperframes_compose(operation="render_existing")` 渲染 `renders/final.mp4` 并做音画自检
-8. `publish` **[人工审批]**：输出小红书/抖音封面、标题、A2 核心词汇笔记与成片包 → `publish_log.json`
+7. `compose`：执行 `npx hyperframes lint`、`validate`、`inspect`、`snapshot` 抽帧目检 → 通过 `video_compose` / `hyperframes_compose(operation="render_existing")` 渲染 `renders/final.mp4`，做音画自检并完成[发布版压缩](#发布版压缩) → `render_report.json` + `final_review.json`
+8. `publish` **[人工审批]**：将 `render_report.metadata.publish_video.path` 写入两个平台的 `publish_log.entries[].export_path`，同时输出封面、标题和 A2 核心词汇笔记。
+
+### 发布版压缩
+
+母版渲染并通过音画自检后，在完成 `compose` 检查点前执行下面的命令。
+
+```bash
+.venv/bin/python custom/playbooks/english-short-drama/compress_publish.py \
+  --project-dir "projects/${PROJECT_ID}"
+```
+
+脚本调用 OpenMontage 的 `video_compose(operation="encode")`。用 H.264、CRF 23、`medium` 和 AAC 输出 MP4，并用 `ffprobe` 检查音轨、分辨率、帧率和时长。压缩后文件更小时，输出 `renders/final-publish.mp4` 并保留 `renders/final.mp4` 母版。若重编码后的文件没有变小，脚本选择母版发布。
+
+把命令返回的 `publish` 写入 `render_report.metadata.publish_video`，把 `encoding` 和 `saved_bytes` 写入 `render_report.metadata.publish_compression`。压缩版单独加入 `render_report.outputs`，并抽帧检查英文逐词高亮、中文字幕及画面细节。报告记录实际发布文件，续做时从报告读取该路径。

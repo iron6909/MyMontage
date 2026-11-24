@@ -30,6 +30,7 @@ from custom.plugins.studiowright.client import (
     prompt_text,
     timeout_seconds,
 )
+from custom.tools.image.episode_storyboard import resolve_storyboard
 from tools.base_tool import (
     BaseTool,
     Determinism,
@@ -108,7 +109,10 @@ class FlowImage(BaseTool):
 
     input_schema = {
         "type": "object",
-        "required": ["prompt"],
+        "anyOf": [
+            {"required": ["prompt"]},
+            {"required": ["episode_spec", "scene_id"]},
+        ],
         "properties": {
             "prompt": {
                 "type": "string",
@@ -142,6 +146,14 @@ class FlowImage(BaseTool):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Local file paths or Flow media ids to use as reference images.",
+            },
+            "episode_spec": {
+                "type": "string",
+                "description": "Short-drama artifacts/episode_spec.json with the Flow project and character sheets.",
+            },
+            "scene_id": {
+                "type": "string",
+                "description": "Storyboard scene to read from episode_spec.",
             },
             "output_path": {
                 "type": "string",
@@ -206,6 +218,9 @@ class FlowImage(BaseTool):
         return 20.0 * inputs.get("count", 1)
 
     def build_command(self, inputs: dict[str, Any]) -> list[str]:
+        return self._build_command(resolve_storyboard(inputs))
+
+    def _build_command(self, inputs: dict[str, Any]) -> list[str]:
         prompt = prompt_text(inputs)
         count = inputs.get("count", 1)
         if type(count) is not int or not 1 <= count <= 4:
@@ -232,17 +247,23 @@ class FlowImage(BaseTool):
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         try:
-            cmd = self.build_command(inputs)
+            inputs = resolve_storyboard(inputs)
+            cmd = self._build_command(inputs)
             count = inputs.get("count", 1)
             sized = inputs.get("size") in ("2K", "4K")
             timeout = timeout_seconds(inputs, 360 + (1500 if sized else 60) * count)
-        except (TypeError, ValueError) as exc:
+        except (OSError, TypeError, ValueError) as exc:
             return ToolResult(success=False, error=str(exc))
         model = inputs.get("model", "nano-banana-2.1")
         metadata = {
             "provider": self.provider, "model": model, "prompt": inputs["prompt"],
             "aspect_ratio": inputs.get("aspect_ratio", "16:9"),
         }
+        if inputs.get("scene_id"):
+            metadata.update(
+                scene_id=inputs["scene_id"], project_id=inputs["project"],
+                profile=inputs["profile"], ref_paths=inputs["ref_paths"],
+            )
         if inputs.get("dry_run"):
             return ToolResult(
                 success=True, data={**metadata, "dry_run": True, "command": cmd},

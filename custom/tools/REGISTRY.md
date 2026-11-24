@@ -72,7 +72,8 @@ python3 -m custom.plugins.studiowright image --prompt "a red fox in snow" \
 
 | 参数 | 必需 | 取值 / 限制 |
 | --- | --- | --- |
-| `--prompt` | ✅ | 生成提示词 |
+| `--prompt` | 条件 | 生成提示词。单集规格已有该镜头的 `storyboard_prompt` 时可省略 |
+| `--episode-spec` / `--scene-id` | 成对 | [英语短剧分镜续做](../playbooks/english-short-drama/PLAYBOOK.md#flow-跨会话续做)，从单集规格读取 Flow 项目、profile 和本镜头角色参考图 |
 | `--model` | | `nano-banana-2.1`（默认）/ `nano-banana-pro` / `nano-banana-2-lite` |
 | `--aspect` | | `16:9`（默认）/ `4:3` / `1:1` / `3:4` / `9:16` |
 | `--count` | | `1`–`4`，默认 `1` |

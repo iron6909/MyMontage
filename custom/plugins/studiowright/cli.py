@@ -69,7 +69,9 @@ def _common(parser: argparse.ArgumentParser, *, require_prompt: bool = True) -> 
 
 
 def _image_parser(sub: argparse.ArgumentParser) -> None:
-    _common(sub)
+    _common(sub, require_prompt=False)
+    sub.add_argument("--episode-spec", help="short-drama artifacts/episode_spec.json")
+    sub.add_argument("--scene-id", help="storyboard scene ID; requires --episode-spec")
     sub.add_argument("--model", default=None,
                      help="nano-banana-2.1 (default) | nano-banana-pro | nano-banana-2-lite")
     sub.add_argument("--aspect", default=None, help="16:9 (default) | 4:3 | 1:1 | 3:4 | 9:16")
@@ -115,7 +117,8 @@ def _music_parser(sub: argparse.ArgumentParser) -> None:
 
 def _image_inputs(args: argparse.Namespace) -> dict[str, Any]:
     extra = {"model": args.model, "aspect_ratio": args.aspect, "count": args.count,
-             "size": args.size, "ref_paths": args.refs, "project": args.project}
+             "size": args.size, "ref_paths": args.refs, "project": args.project,
+             "episode_spec": args.episode_spec, "scene_id": args.scene_id}
     return _with_common(args, extra)
 
 
@@ -180,7 +183,7 @@ def run(name: str, args: argparse.Namespace) -> int:
     if args.plan:
         try:
             cmd = tool.build_command(inputs)
-        except (TypeError, ValueError, OverflowError) as exc:
+        except (OSError, TypeError, ValueError, OverflowError) as exc:
             return _emit(_status("error", tool, inputs, error=str(exc)))
         return _emit(_status("plan", tool, inputs, command=cmd))
 
