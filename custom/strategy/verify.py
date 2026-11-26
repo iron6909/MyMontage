@@ -24,6 +24,7 @@ TESTS = (
     "test_piper_tts.py",
     "test_english_short_drama_playbook.py",
     "test_gemini_tts.py",
+    "test_shared_upload.py",
 )
 
 

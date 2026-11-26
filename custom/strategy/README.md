@@ -45,3 +45,5 @@ Strategy Stack 常规代码任务继续使用 `verify.py`。其 `policy.json` �
 ## 生产适配器
 
 `production.py` 从本次 attempt 的项目目录读取管线检查点。待人工审批退出 76。有效成片须包含音画流且超过一秒，归档成功后才产生回执。生产凭据和 Google Drive remote 由部署注入。内容检查点从 Backlot 或管线入口审批。
+
+共用归档入口为 `python -m custom.strategy.shared_upload <local_path> <category> <project_slug>`；调用该入口本身会执行上传，须先取得相应授权。生产使用 `options.project_slug`（若提供），否则沿用 attempt 的 `project_id`。入口要求非空文件、有音画流且时长大于零；生产额外保留上述超过一秒的门槛。归档使用 `gdrive:MyMontage_Studio/<category>/<project_slug>/<project_slug>.mp4`，校验远端大小并返回私有查看 URL，不修改分享权限。继承权限状态仍为 unknown；旧前缀不迁移。
