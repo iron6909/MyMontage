@@ -114,11 +114,10 @@ def main():
         if _stage_requires_approval(pipeline, stage) and checkpoint.get("human_approved") is not True:
             return 76
     verification = checks(final)
-    remote = os.environ.get("MYMONTAGE_GDRIVE_REMOTE")
-    if not remote:
-        parser.error("MYMONTAGE_GDRIVE_REMOTE is required for archive")
-    destination = f"{remote.rstrip('/')}/{category}/{project_id}/final.mp4"
-    subprocess.run(["rclone", "copyto", "--immutable", "--", str(final), destination], check=True, timeout=600)
+    from custom.strategy.shared_upload import upload
+
+    archive = upload(final, category, options.get("project_slug", project_id))
+    destination = archive["remote_path"]
     result = {key: dispatch[key] for key in ("run_id", "attempt", "ticket")}
     result.update(artifact=str(final), verification=verification, archive=destination)
     with tempfile.NamedTemporaryFile(dir=args.result.parent, mode="w", encoding="utf-8", delete=False) as output:
