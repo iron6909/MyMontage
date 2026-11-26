@@ -1,0 +1,4 @@
+# MOZ-48: project-level Node pin for remotion-composer only.
+# Do not change ~/.config/mise/config.toml.
+[tools]
+node = "24.22.3"
