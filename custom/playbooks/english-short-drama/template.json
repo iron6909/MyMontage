@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "playbook": "english-short-drama",
   "pipeline": "animation",
-  "visual_mode": "mixed",
+  "visual_mode": "image_animation",
   "audio_architecture": "narrator_plus_characters",
   "render_runtime": "hyperframes",
   "composition_mode": "atelier",
@@ -46,12 +46,6 @@
       "model": "nano-banana-2.1",
       "aspect": "9:16",
       "size": "original"
-    },
-    "hero_video": {
-      "tool": "flow_video",
-      "model": "omni-flash-1.2",
-      "aspect": "9:16",
-      "require_dry_run_quote": true
     },
     "music": {
       "tool": "flow_music",
@@ -111,6 +105,67 @@
       "accent_color": "#FF6B9D"
     }
   ],
+  "continuity": {
+    "subjects": [
+      {
+        "id": "leo",
+        "kind": "person",
+        "stable_features": "Brown hair, beige trench coat and dark scarf; see the approved Leo character reference.",
+        "reference_path": null,
+        "reference_media_id": null
+      },
+      {
+        "id": "clara",
+        "kind": "person",
+        "stable_features": "Shoulder-length dark hair, olive wool coat and round tortoiseshell glasses.",
+        "reference_path": null,
+        "reference_media_id": null
+      }
+    ],
+    "props": [
+      {
+        "id": "yellow_umbrella",
+        "stable_features": "Bright yellow umbrella.",
+        "reference_path": null,
+        "reference_media_id": null
+      },
+      {
+        "id": "pink_umbrella",
+        "stable_features": "Tiny pink umbrella with polka dots.",
+        "reference_path": null,
+        "reference_media_id": null
+      }
+    ],
+    "locations": [
+      {
+        "id": "coffee_shop_entrance",
+        "stable_features": "New York corner coffee shop, awning, window and planter beside the entrance.",
+        "reference_path": null,
+        "reference_media_id": null
+      }
+    ],
+    "shots": [
+      {
+        "scene_id": "scene_01",
+        "subjects": ["leo"],
+        "props": ["yellow_umbrella"],
+        "locations": ["coffee_shop_entrance"],
+        "states": ["Leo holds the yellow umbrella outside the shop."],
+        "spatial_notes": "Keep the shop entrance and awning recognizable."
+      },
+      {
+        "scene_id": "scene_02",
+        "subjects": ["leo", "clara"],
+        "props": ["yellow_umbrella", "pink_umbrella"],
+        "locations": ["coffee_shop_entrance"],
+        "states": [
+          "Leo has the yellow umbrella.",
+          "Clara holds the pink polka-dot umbrella with Leo's initials on the handle."
+        ],
+        "spatial_notes": "The characters remain under the same shop awning."
+      }
+    ]
+  },
   "bgm": {
     "src": "",
     "base_volume": 0.16,
@@ -131,11 +186,11 @@
     },
     {
       "id": "scene_02",
-      "kind": "video",
-      "src": "assets/video/scene_02_twist.mp4",
+      "kind": "still",
+      "src": "assets/images/scene_02_twist.png",
       "start": 6.0,
       "duration": 6.0,
-      "motion": "none",
+      "motion": "pan-right",
       "character_refs": ["leo", "clara"],
       "storyboard_prompt": "Under the same awning, Clara holds up a tiny pink polka-dot umbrella with Leo's initials on the handle, smiling at Leo. Frame both faces in the upper half. Rain streaks and warm shop-window reflections soften the background."
     }
