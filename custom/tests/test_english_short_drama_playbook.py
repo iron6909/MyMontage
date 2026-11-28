@@ -58,7 +58,7 @@ class TestEnglishShortDramaPlaybook(TestCase):
             "styles/anime-ghibli.yaml",
             "nano-banana-pro",
             "nano-banana-2.1",
-            "flow_video",
+            "image_animation",
             "flow_music",
             "google_gemini_tts",
             "gemini-2.5-flash-tts",
@@ -71,7 +71,9 @@ class TestEnglishShortDramaPlaybook(TestCase):
         spec = json.loads(TEMPLATE_PATH.read_text(encoding="utf-8"))
         self.assertEqual(spec["style_path"], "styles/anime-ghibli.yaml")
         self.assertEqual(spec["pipeline"], "animation")
-        self.assertEqual(spec["visual_mode"], "mixed")
+        self.assertEqual(spec["visual_mode"], "image_animation")
+        self.assertNotIn("hero_video", spec["models"])
+        self.assertTrue(all(scene["kind"] == "still" for scene in spec["scenes"]))
         self.assertEqual(spec["audio_architecture"], "narrator_plus_characters")
         self.assertEqual(spec["render_runtime"], "hyperframes")
         self.assertEqual(spec["composition_mode"], "atelier")
@@ -82,6 +84,19 @@ class TestEnglishShortDramaPlaybook(TestCase):
         self.assertEqual(spec["models"]["tts_primary"]["model"], "gemini-2.5-flash-tts")
         self.assertEqual(spec["models"]["tts_primary"]["backup_model"], "gemini-3.8-flash-tts")
         self.assertEqual(spec["models"]["tts_fallback"]["tool"], "openrouter_audio")
+        continuity = spec["continuity"]
+        subjects = {row["id"] for row in continuity["subjects"]}
+        self.assertTrue(subjects <= {row["id"] for row in spec["characters"]})
+        prop_ids = {row["id"] for row in continuity["props"]}
+        location_ids = {row["id"] for row in continuity["locations"]}
+        self.assertEqual(
+            {shot["scene_id"] for shot in continuity["shots"]},
+            {scene["id"] for scene in spec["scenes"]},
+        )
+        for shot in continuity["shots"]:
+            self.assertTrue(set(shot["subjects"]) <= subjects)
+            self.assertTrue(set(shot["props"]) <= prop_ids)
+            self.assertTrue(set(shot["locations"]) <= location_ids)
 
     def test_cli_builds_hyperframes_workspace_and_schema_valid_edit_decisions(self):
         schema = json.loads(EDIT_DECISIONS_SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -140,7 +155,7 @@ class TestEnglishShortDramaPlaybook(TestCase):
             project_dir = root / "project"
             for rel in (
                 "assets/images/scene_01_cafe.png",
-                "assets/video/scene_02_twist.mp4",
+                "assets/images/scene_02_twist.png",
                 "assets/audio/line_01.wav",
                 "assets/music/bgm.mp3",
             ):
@@ -174,10 +189,29 @@ class TestEnglishShortDramaPlaybook(TestCase):
             )
             html = (workspace / "index.html").read_text(encoding="utf-8")
             self.assertIn("--accent: #FFAA33;", html)
-            self.assertIn('<video id="scene-scene_02"', html)
+            self.assertIn('<div id="scene-scene_02" class="clip scene-still"', html)
             self.assertIn('<audio id="voice-cue_01"', html)
             self.assertIn('<audio id="bgm-track"', html)
             self.assertNotIn("<template", html)
+
+            # Existing mixed-mode episodes still render their video scenes.
+            legacy_video = project_dir / "assets/video/scene_02_twist.mp4"
+            legacy_video.parent.mkdir(parents=True, exist_ok=True)
+            legacy_video.write_bytes(b"stub")
+            spec["visual_mode"] = "mixed"
+            spec["scenes"][1].update(
+                kind="video", src="assets/video/scene_02_twist.mp4", motion="none"
+            )
+            spec_path.write_text(json.dumps(spec), encoding="utf-8")
+            builder.build_workspace(
+                spec_path=spec_path,
+                workspace=root / "hf_legacy",
+                style_path=alt_style_path,
+                assets_base=project_dir,
+                strict_media=True,
+            )
+            legacy_html = (root / "hf_legacy" / "index.html").read_text(encoding="utf-8")
+            self.assertIn('<video id="scene-scene_02"', legacy_html)
 
             # Missing media fails loudly under strict_media=True.
             spec["scenes"][0]["src"] = "assets/images/missing.png"

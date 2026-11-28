@@ -6,7 +6,7 @@
 
 | 项目 | 锁定值 |
 | --- | --- |
-| 上游管线 | `pipeline_defs/animation.yaml`（`mixed` 视觉模式） |
+| 上游管线 | `pipeline_defs/animation.yaml`（`image_animation` 图片动画模式） |
 | 音频架构 | `narrator_plus_characters`（旁白 + 多角色对话） |
 | 合成运行时 | `render_runtime: hyperframes`（`composition_mode: atelier`，`renderer_family: animation-first`） |
 | 画面规格 | `1080x1920`（9:16 竖屏），`30fps` |
@@ -65,6 +65,22 @@
 
 角色三视图使用单集 `style_path` 中的 `asset_generation.image_prompt_prefix` 和 `image_negative_prompt`，在中性背景上保留水彩笔触。分镜入口会自动读取同一份风格配置并加入这两项，`storyboard_prompt` 填本镜头的构图、动作和布景。双语字幕在合成阶段叠加。
 
+#### 角色、动物、道具和场景的一致性
+
+在分镜设计前，按模板的 `continuity` 登记本集重复出现、需要辨认或随剧情改变状态的主体。以唯一 ID 区分人物、动物、道具和场景。旁白和无需辨认的背景群众可不建立角色参考。根据实际故事决定哪些道具和地点需要登记。
+
+- `continuity.subjects` 中的 `kind` 使用 `person` 或 `animal`，对应现有 `characters` 中的同一 ID。每个主体填写 `stable_features`，分别记录已批准参考图的 `reference_path` 和 `reference_media_id`。现有角色字段 `turnaround_sheet` 和 `turnaround_media_id` 仍供 Flow 入口使用，应与该主体的参考记录一致。
+- `continuity.props` 和 `continuity.locations` 分别记录道具与地点的 ID、`stable_features`、`reference_path` 和 `reference_media_id`。参考图建立前路径和媒体 ID 可以为空；一旦生成并确认就登记实际值。
+- `continuity.shots` 以 `scene_id` 对应 `scenes[].id`，分别列出 `subjects`、`props`、`locations`、本镜头的 `states` 与 `spatial_notes`。动物属于 `subjects`，作为角色引用时同样写入 `scenes[].character_refs`。配音用的旁白 ID 无需加入画面主体。
+
+1. **独立设定图。** 每个人物、每只需要辨认的动物分别生成参考图；每件关键道具单独生成参考图；每个需要维持空间关系的地点建立场景参考图。人物图不要与动物、独立道具或其他人物共用一张主体设定图。手持道具的关系可另用互动参考图说明。
+2. **验收角色图。** 人物的正面、四分之三侧面和侧面应为同一人物，头、躯干、手、腿、脚完整，轮廓无遮挡，不与其他主体或道具融合。动物参考图记录品种或外形、年龄感、毛色与斑纹、四肢和尾巴，并给出与成人或常见物体的相对体型。服装和外观以剧本与已批准的设计为准。
+3. **验收道具与场景图。** 道具记录外形、尺寸、材质、颜色、内容物和可变状态；道具参考应能辨认完整轮廓。场景记录地点布局、固定建筑或家具、出入口、地标、主要光线及观察方向。补充不同视角时保持同一空间关系。
+4. **建立镜头状态。** 每个镜头在 `continuity.shots` 中列出本镜头涉及的实体 ID 和状态，包括受伤部位的左右与包扎范围、衣物穿脱、物品持有者、动物相对体型和场景视角。状态随剧情事件改变；相邻镜头继承此前状态，直至剧情明确改变。纯空镜和无需某类实体的镜头可以使用空列表。
+5. **生成并检查。** 生成前按实体 ID 选择对应的独立参考图，说明每张参考图代表的主体和本镜头状态。逐张对照参考图及相邻镜头检查人物身份、肢体完整性、左右手、动物体型、道具形状和归属、场景方位。将问题、处理和复查结果写入素材阶段审核记录；发现影响叙事的一致性错误时修正后再进入合成。
+
+`continuity` 是制作记录。当前 `flow_image --episode-spec --scene-id` 入口自动绑定的是 `scenes[].character_refs` 中的角色参考；道具、场景和状态需由制作人员依照 `continuity` 记录写入镜头提示词并通过 `--ref` 附加参考图。工具尚不自动读取或验证这些新增字段，也无法仅靠结构校验确认图像内容。旧单集可以先保留原有引用，补录和检查后再替换混合设定图。
+
 #### Flow 跨会话续做
 
 1. **分镜阶段建立单集规格。** 在原项目的 `artifacts/episode_spec.json` 保留角色 `characters[].id`、每个镜头的 `scenes[].storyboard_prompt` 和按图排列的 `scenes[].character_refs`。引用使用实际出镜角色的 ID，纯空镜填 `[]`。选定 Flow 项目后记录 `flow_project_id` 和实际使用的 `flow_profile`。
@@ -81,13 +97,12 @@
 
 若某个镜头已批准单独的造型参考图，在规格中为该造型登记独立 ID，并在该镜头的 `character_refs` 中引用。旧集重做前，先对照资产检查点中的实际参考图，补录获批的镜头专用参考图。
 
-### B. 关键表演动态镜头（Google Flow · `flow_video`）
-- **混排比例（`mixed` 模式）**：推荐 **40%~60% 核心表演/反转镜头用 `flow_video`**（6~10 条 4~8s 片段），其余 **40%~60% 过渡/反应/道具镜头用 `nano-banana-2.1` 分镜图 + HyperFrames 电影感微运镜（缓慢推近/平移/淡入淡出）**，既保住短片动感又控制 Flow 视频额度。
-- **模型与绑定方式**：
-  - 人物微表情与对话动作：`omni-flash-1.2`（支持 `3–15s`、`--aspect 9:16`、`--start <分镜图> [--end <下一分镜>] [--ref <角色三视图>]`）。
-  - 城市空镜 / 氛围建立：`veo-lite`（`--duration 8 --aspect 9:16`）。
-- 动态镜头沿用分镜的水彩笔触、柔光和配色。人物镜头用已确认的 Anime Ghibli 分镜作首帧，运镜与表演围绕镜头内容展开。
-- **硬性额度保护**：提交任何正式视频生成前，**必须先跑 `--dry-run` 查询 Flow 实时报价**，并在正式命令中传入 `--max-credits <上限>`。
+### B. 图片动画与镜头表演
+
+- 所有剧情镜头使用分镜图，`scenes[].kind` 填写 `still`，`src` 指向图片，`motion` 选择 `push-in`、`pull-out`、`pan-left`、`pan-right` 或 `none`。
+- 利用不同景别、反应镜头、推拉和平移表现剧情。穿脱衣物等动作可拆成前后两个图片镜头，并在时间线上依次排列。
+- 如需一场戏的多个姿态或表情，为每张图片建立独立镜头并分配起止时间。生成器当前每个镜头读取一张图片；音频和字幕按原时间线对齐。
+- 使用已确认的角色参考图生成全部分镜，重点核对面部特征、身高比例、服装和道具在相邻镜头中的一致性。
 
 ### C. 背景音乐（Google Flow Music · `flow_music`）
 - 使用 `python3 -m custom.plugins.studiowright music --action create --model lyria-3.5 --length <2:00-3:00> --format mp3 --output projects/<project-id>/assets/music`。
@@ -133,8 +148,8 @@
 1. `research`：收集选材原型与 A2 表达语料 → `research_brief.json`
 2. `proposal` **[人工审批]**：3 个反转故事备选、确认 `render_runtime=hyperframes` / `composition_mode=atelier`、工具与额度预估 → `proposal_packet.json` + `decision_log.json`
 3. `script` **[人工审批]**：完整英汉双语台词、**2.0 秒英汉大字封面定义**（`cover.duration_seconds: 2.0`、`title_en`、`title_zh`）、角色音色分配、停顿提示与 A2 重点表达 → `script.json`
-4. `scene_plan` **[人工审批]**：镜头表（标注 `still` / `video`、景别、运镜、所需参考图）→ `scene_plan.json` + `episode_spec.json` 初稿
-5. `assets` **[人工审批]**：先小样（1 张角色三视图 + 1 张分镜 + 2 句配音）→ 获批后批量出图/出视频/出配乐/逐词对齐 → `asset_manifest.json` + 更新后的 `episode_spec.json`
+4. `scene_plan` **[人工审批]**：镜头表（标注图片、景别、运镜、所需参考图），登记实体、每镜头状态与空间关系 → `scene_plan.json` + `episode_spec.json` 初稿
+5. `assets` **[人工审批]**：先小样（1 张角色三视图 + 1 张分镜 + 2 句配音）→ 获批后分别制作所需主体、道具和场景参考，批量出图/出配乐/逐词对齐，逐镜记录一致性复核结果 → `asset_manifest.json` + 更新后的 `episode_spec.json`
 6. `edit`：调用 `build_workspace.py` 生成 `hyperframes/index.html` 与 `edit_decisions.json`
 7. `compose`：执行 `npx hyperframes lint`、`validate`、`inspect`、`snapshot` 抽帧目检 → 通过 `video_compose` / `hyperframes_compose(operation="render_existing")` 渲染 `renders/final.mp4`，做音画自检并完成[发布版压缩](#发布版压缩) → `render_report.json` + `final_review.json`
 8. `publish` **[人工审批]**：将 `render_report.metadata.publish_video.path` 写入两个平台的 `publish_log.entries[].export_path`，同时输出封面、标题和 A2 核心词汇笔记。
